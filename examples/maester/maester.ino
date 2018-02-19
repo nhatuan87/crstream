@@ -1,7 +1,7 @@
 #include <crstream.h>
 #include <EEPROM.h>
+#include "myframe.h"
 
-#define minute        60000UL // milliseconds
 //#define TEST
 
 #ifdef TEST
@@ -12,22 +12,24 @@ crstream<> cresson(Serial);
   SoftwareSerial            Serial1(3, 4);
   crstream<SoftwareSerial>  cresson(Serial1);
 #elif defined (__AVR_ATmega2560__)
-  crstream<>                  cresson(Serial1);
+  crstream<>                cresson(Serial1);
 #endif
 #endif // TEST
 
 typedef struct {
-  float     uptime;
-  float     value;
-} myframe;
+    uint32_t    days;
+    uint8_t     hours;
+    uint8_t     mins;
+} mytime_t;
 
 typedef struct {
-  uint16_t  sender;
-  float     max_uptime;
+  uint16_t  nodeID;
+  uint32_t  max_uptime;
   myframe   payload;
 } descriptor;
 
-descriptor mydescriptor;
+descriptor  mydescriptor;
+mytime_t    mytime;
 
 void setup() {
   // serial debug
@@ -50,11 +52,10 @@ void setup() {
 }
 
 void loop() {
-  // request & respond example
   if ( cresson.available() ) {
     cresson >> mydescriptor.payload;
     mydescriptor.max_uptime = max(mydescriptor.max_uptime, mydescriptor.payload.uptime);
-    mydescriptor.sender     = cresson.sender();
+    mydescriptor.nodeID     = cresson.sender();
     if ( ! cresson.status() ) {
       descriptor_store(0, (char*) &mydescriptor, sizeof(mydescriptor));
       descriptor_print();
@@ -67,16 +68,19 @@ void loop() {
 }
 
 void descriptor_print() {
-  dbgSerial.println( F("--DESCRIPTOR----")     );
+  dbgSerial.println( F("--DESCRIPTOR----")              );
   
-  dbgSerial.print  ( F("sender (nodeID)=")               );
-  dbgSerial.println( mydescriptor.sender,HEX             );
-  dbgSerial.print  ( F("max uptime (hours)=")            );
-  dbgSerial.println( mydescriptor.max_uptime             );
-  dbgSerial.print  ( F("recent uptime (hours)=")         );
-  dbgSerial.println( mydescriptor.payload.uptime         );
-  dbgSerial.print  ( F("recent value (volt)=")           );
-  dbgSerial.println( mydescriptor.payload.value          );
+  dbgSerial.print  ( F("nodeID = ")                     );
+  dbgSerial.println( mydescriptor.nodeID, HEX           );
+  
+  dbgSerial.print  ( F("max uptime = ")                 );
+  mytime_print(mydescriptor.max_uptime);
+  
+  dbgSerial.print  ( F("recent uptime = ")              );
+  mytime_print(mydescriptor.payload.uptime);
+
+  dbgSerial.print  ( F("recent value = ")               );
+  dbgSerial.println( mydescriptor.payload.value         );
 
   dbgSerial.println( F("----------------")     );
 }
@@ -87,3 +91,19 @@ void descriptor_store(uint16_t address, const char* obj, const uint8_t size) {
   }
 }
 
+mytime_t& conv(uint32_t& uptime) {
+    mytime.mins     =  uptime % 60;
+    mytime.hours    = (uptime / 60) % 24;
+    mytime.days     = (uptime / 60) / 24;
+    return mytime;
+}
+
+void mytime_print(uint32_t& uptime) {
+    conv(uptime);
+    dbgSerial.print  ( mytime.days                        );
+    dbgSerial.print  ( F(" days ")                        );
+    dbgSerial.print  ( mytime.hours                       );
+    dbgSerial.print  ( F(" hours ")                       );
+    dbgSerial.print  ( mytime.mins                        );
+    dbgSerial.println( F(" mins")                         );
+}

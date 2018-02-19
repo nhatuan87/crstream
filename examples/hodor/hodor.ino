@@ -1,9 +1,11 @@
 #include <crstream.h>
 #include <MyHwAVR.h>
 //#include <RTClib.h>
+#include "myframe.h"
 
-#define minute        60000UL // milliseconds
-#define SAMPLEPERIOD  15      // minutes
+#define MINUTE  60000UL                 // milliseconds
+const uint16_t  sampleInterval = 15;    //minutes
+
 //#define TEST
 
 #ifdef TEST
@@ -14,11 +16,12 @@ crstream<> cresson(Serial);
   SoftwareSerial            Serial1(3, 4);
   crstream<SoftwareSerial>  cresson(Serial1);
 #elif defined (__AVR_ATmega2560__)
-  crstream<>                  cresson(Serial1);
+  crstream<>                cresson(Serial1);
 #endif
 #endif // TEST
 
-uint16_t sample_no = 0;
+uint16_t    sample_no = 0;
+myframe     payload;
 
 void setup() {
   // seed timestamp into random function
@@ -42,11 +45,15 @@ void setup() {
 
 void loop() {
 
-  // read AVCC
-  float AVCCVoltage = (float) hwCPUVoltage()/1000;
-  float uptime      = (++sample_no) * (float)SAMPLEPERIOD/60; // hours
-  cresson << uptime << AVCCVoltage;
+  payload.uptime    = sample_no++ * sampleInterval; // minutes
+  payload.value     = sensorRead();
+  cresson << payload;
 
   while( !cresson.isSleeping() ) cresson.update();
-  hwSleep(SAMPLEPERIOD*minute);
+  hwSleep(sampleInterval*MINUTE);
+}
+
+// read AVCC
+float sensorRead() {
+    return (float) hwCPUVoltage()/1000; // volt
 }
