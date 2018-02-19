@@ -3,8 +3,11 @@
 //#include <RTClib.h>
 #include "myframe.h"
 
-#define MINUTE  60000UL                 // milliseconds
-const uint16_t  sampleInterval = 15;    //minutes
+#define SECOND  1000 // millisecond
+#define MINUTE    60 // seconds
+#define HOUR    3600 // seconds
+
+const uint16_t  sampleInterval = 15*MINUTE; // Max = 18.2*HOUR
 
 //#define TEST
 
@@ -45,12 +48,12 @@ void setup() {
 
 void loop() {
 
-  payload.uptime    = sample_no++ * sampleInterval; // minutes
+  payload.uptime    = sample_no++ * sampleInterval; // seconds
   payload.value     = sensorRead();
   cresson << payload;
 
   while( !cresson.isSleeping() ) cresson.update();
-  hwSleep(sampleInterval*MINUTE);
+  hwSleep(sampleInterval*SECOND);
 }
 
 // read AVCC

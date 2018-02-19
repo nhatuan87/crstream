@@ -17,9 +17,10 @@ crstream<> cresson(Serial);
 #endif // TEST
 
 typedef struct {
-    uint32_t    days;
+    uint16_t    days;
     uint8_t     hours;
     uint8_t     mins;
+    uint8_t     secs;
 } mytime_t;
 
 typedef struct {
@@ -112,9 +113,10 @@ void descriptor_clear() {
   }
 }
 mytime_t& conv(uint32_t& uptime) {
-    mytime.mins     =  uptime % 60;
-    mytime.hours    = (uptime / 60) % 24;
-    mytime.days     = (uptime / 60) / 24;
+    mytime.days     =  uptime / 86400;
+    mytime.hours    = (uptime % 86400) / 3600;
+    mytime.mins     = (uptime % 3600 ) / 60;
+    mytime.secs     =  uptime % 60;
     return mytime;
 }
 
@@ -125,5 +127,7 @@ void mytime_print(uint32_t& uptime) {
     dbgSerial.print  ( mytime.hours                       );
     dbgSerial.print  ( F(" hours ")                       );
     dbgSerial.print  ( mytime.mins                        );
-    dbgSerial.println( F(" mins")                         );
+    dbgSerial.print  ( F(" mins ")                        );
+    dbgSerial.print  ( mytime.secs                        );
+    dbgSerial.println( F(" secs")                         );
 }
