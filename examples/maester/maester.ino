@@ -35,9 +35,6 @@ void setup() {
   // serial debug
   dbgSerial.begin(9600);
 
-  EEPROM.get(0, mydescriptor);
-  descriptor_print();
-
   // cresson setup
   cresson.baudmode  =    B_9600 ; // default: 9600 bps
   cresson.selfID    =         0 ; // default: 0x0000
@@ -49,6 +46,12 @@ void setup() {
   cresson.autosleep =   false   ;
   cresson.begin();
 
+  Serial.println( F("The device is listening to sensor node's power voltage and its uptime."));
+  Serial.println( F("The information would be stored in a descriptor."));
+  Serial.println( F("To clear the descriptor, type '!'."));
+  
+  EEPROM.get(0, mydescriptor);
+  descriptor_print();
 }
 
 void loop() {
@@ -57,7 +60,7 @@ void loop() {
     mydescriptor.max_uptime = max(mydescriptor.max_uptime, mydescriptor.payload.uptime);
     mydescriptor.nodeID     = cresson.sender();
     if ( ! cresson.status() ) {
-      descriptor_store(0, (char*) &mydescriptor, sizeof(mydescriptor));
+      descriptor_store();
       descriptor_print();
     } else {
       dbgSerial.println( F("Frame error (hexascii format required)") );
@@ -65,6 +68,16 @@ void loop() {
     cresson.clear();
   }
   cresson.update();
+
+  char c = (char)dbgSerial.read();
+  if (c == '!') {
+    descriptor_clear();
+    dbgSerial.println(F("The descriptor cleared!"));
+  }
+}
+
+void serialEvent() {
+
 }
 
 void descriptor_print() {
@@ -85,12 +98,19 @@ void descriptor_print() {
   dbgSerial.println( F("----------------")     );
 }
 
-void descriptor_store(uint16_t address, const char* obj, const uint8_t size) {
-  for(uint8_t i=0; i<size; i++) {
-    EEPROM.update(address+i, obj[i]);
+void descriptor_store() {
+  char* obj = (char*) &mydescriptor;
+  for(uint8_t i=0; i<sizeof(mydescriptor); i++) {
+    EEPROM.update(i, obj[i]);
   }
 }
 
+void descriptor_clear() {
+  char* obj = (char*) &mydescriptor;
+  for(uint8_t i=0; i<sizeof(mydescriptor); i++) {
+    EEPROM.update(i, 0);
+  }
+}
 mytime_t& conv(uint32_t& uptime) {
     mytime.mins     =  uptime % 60;
     mytime.hours    = (uptime / 60) % 24;
