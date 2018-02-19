@@ -3,9 +3,9 @@
 //#include <RTClib.h>
 #include "myframe.h"
 
-#define SECOND  1000 // millisecond
-#define MINUTE    60 // seconds
-#define HOUR    3600 // seconds
+#define SECOND  1000UL  // millisecond
+#define MINUTE    60    // seconds
+#define HOUR    3600    // seconds
 
 const uint16_t  sampleInterval = 15*MINUTE; // Max = 18.2*HOUR
 
