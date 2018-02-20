@@ -1,6 +1,9 @@
 #include <crstream.h>
 #include <EEPROM.h>
+#include <MinimumSerial.h>
+
 #include "myframe.h"
+MinimumSerial dbgSerial;
 
 //#define TEST
 
@@ -59,6 +62,7 @@ void loop() {
   if ( cresson.available() ) {
     cresson >> mydescriptor.payload;
     mydescriptor.max_uptime = max(mydescriptor.max_uptime, mydescriptor.payload.uptime);
+    
     mydescriptor.nodeID     = cresson.sender();
     if ( ! cresson.status() ) {
       descriptor_store();
@@ -66,7 +70,6 @@ void loop() {
     } else {
       dbgSerial.println( F("Frame error (hexascii format required)") );
     }
-    cresson.clear();
   }
   cresson.update();
 
@@ -75,10 +78,6 @@ void loop() {
     descriptor_clear();
     dbgSerial.println(F("The descriptor cleared!"));
   }
-}
-
-void serialEvent() {
-
 }
 
 void descriptor_print() {
@@ -112,7 +111,8 @@ void descriptor_clear() {
     EEPROM.update(i, 0);
   }
 }
-mytime_t& conv(uint32_t& uptime) {
+
+mytime_t& conv(uint32_t uptime) {
     mytime.days     =  uptime / 86400;
     mytime.hours    = (uptime % 86400) / 3600;
     mytime.mins     = (uptime % 3600 ) / 60;
@@ -120,7 +120,7 @@ mytime_t& conv(uint32_t& uptime) {
     return mytime;
 }
 
-void mytime_print(uint32_t& uptime) {
+void mytime_print(uint32_t uptime) {
     conv(uptime);
     dbgSerial.print  ( mytime.days                        );
     dbgSerial.print  ( F(" days ")                        );

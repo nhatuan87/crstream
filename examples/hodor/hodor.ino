@@ -1,7 +1,10 @@
 #include <crstream.h>
 #include <MyHwAVR.h>
+//#include <MinimumSerial.h>
 //#include <RTClib.h>
 #include "myframe.h"
+
+//MinimumSerial dbgSerial;
 
 #define SECOND  1000UL  // millisecond
 #define MINUTE    60    // seconds
@@ -23,7 +26,7 @@ crstream<> cresson(Serial);
 #endif
 #endif // TEST
 
-uint16_t    sample_no = 0;
+uint32_t    sample_no = 0;
 myframe     payload;
 
 void setup() {
@@ -32,7 +35,7 @@ void setup() {
   //randomSeed(compiletime.unixtime());
 
   // serial debug
-  dbgSerial.begin(9600);
+  //dbgSerial.begin(9600);
 
   // cresson setup
   cresson.baudmode  =    B_9600 ; // default: 9600 bps
@@ -52,7 +55,7 @@ void loop() {
   payload.value     = sensorRead();
   cresson << payload;
 
-  while( !cresson.isSleeping() ) cresson.update();
+  cresson.update();
   hwSleep(sampleInterval*SECOND);
 }
 

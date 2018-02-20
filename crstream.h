@@ -7,11 +7,8 @@
 
 #include <Arduino.h>
 
-#include <MinimumSerial.h>
-
 #include <StandardCplusplus.h>
 #include <serstream>
-#include <iomanip>
 
 using namespace std;
 
@@ -56,16 +53,6 @@ typedef enum {
     RX_ROUTE
 } RXSTATE;
 
-typedef struct {
-    uint16_t            sender;
-    uint16_t            destination;
-    uint16_t            id;
-    int16_t             rssi;
-    uint16_t            length;
-    bool                ready;
-    bool                fail;
-} Status;
-
 // Global functions & variables
 int        asc2hex (char c     );
 uint8_t    bin2bcd (uint8_t val);
@@ -80,12 +67,24 @@ extern const PROGMEM char P_send[]     ;
 extern const PROGMEM char P_sendto[]   ;
 extern const PROGMEM char P_sysreg[]   ;
 extern const PROGMEM char P_mhdata[]   ;
-extern MinimumSerial dbgSerial;
 
 extern char             _tempbuf[7];
 extern const uint32_t   _baud[BAUDMODE_NUM] PROGMEM;
 extern const char       _delim;
 
+class Status {
+    public:
+        Status()            { clear(); }
+        uint16_t            sender;
+        uint16_t            destination;
+        uint16_t            id;
+        int16_t             rssi;
+        uint16_t            length;
+        uint16_t            available;
+        uint8_t             rxstate;
+        bool                fail;
+        void                clear();
+};
 
 class basic_crstream {
     public:
@@ -103,13 +102,9 @@ class basic_crstream {
         virtual void            begin(){};
         void                    update();
         bool                    status()        {return _status.fail;}
-        uint16_t                available()     {return _status.ready ? _status.length/2 : 0;}
-        void                    clear();
-        bool                    isSleeping()    {return _isSleeping;}
+        uint16_t                available()     {return _status.available;}
         uint16_t                sender()        {return _status.sender;}
-
         void                    flush()     ;
-
         void                    writecmd(const char* const p_str, const uint16_t num, ...);
 
         template<typename T> basic_crstream& operator<< (T payload);
@@ -118,27 +113,22 @@ class basic_crstream {
     private:
         bool                    _isSleeping  ;
         bool                    _isWriting   ;
-        bool                    _isSending   ;
         uint32_t                _timems      ;
-        uint8_t                 _rxstate     ;
         Status                  _status      ;
         uint8_t                 _serialAvailable ;
         basic_iserialstream<char, char_traits<char>, Stream> _cin;
         
-        void                    _sleep();
-        void                    _wake()      {flush(); flush(); _isSleeping = false;}
+        void                    _clear()         { _clearbuf(); _status.clear(); }
         int                     _get()       ;
         void                    _rxProcess() ;
         bool                    _timeout()   ;
+        void                    _clearbuf()  {_cin.ignore(serial.available(), '\n');}
 
         void                    _write(const char* bytes, const uint8_t length);
 };
 
 template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
-    if (_isSleeping) _wake();
-
-    if (! _isSending) {
-        _isSending = true;
+    if (! _isWriting) {
         writecmd(P_send, 0);
     }
     _write((char*) &payload, sizeof(T) );
@@ -146,13 +136,14 @@ template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
 }
 
 template<typename T> basic_crstream& basic_crstream::operator>> (T& payload){
-    if ( serial.available() >= (int)sizeof(T)*2 ) {
+    if ( _status.available >= (int)sizeof(T) ) {
         char* s = (char*) &payload;
         for (uint8_t i = sizeof(T); i != 0; i--) {
             int retval = _get();
             _status.fail |= (retval == -1);
-            s[i-1] = retval;
+            s[i-1] = (char)retval;
         }
+        _status.available -= sizeof(T);
     } else {
         _status.fail = true;
     }
@@ -176,13 +167,13 @@ void crstream<Tserial>::begin() {
         if (i == baudmode) continue;
 
         port->begin( pgm_read_dword_near(_baud + i - 1) );
-        flush();          // flush previous command
+        flush();   // dummy command
         writecmd(P_baud, 1, baudmode);
         flush();
     }
 
     port->begin( pgm_read_dword_near(_baud + baudmode - 1) );
-    flush();
+    flush();   // dummy command
 
     writecmd(P_sysreg, 2, 0x01, selfID            ); flush();
     writecmd(P_sysreg, 2, 0x02, destID            ); flush();
