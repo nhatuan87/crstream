@@ -72,6 +72,9 @@ extern char             _tempbuf[7];
 extern const uint32_t   _baud[BAUDMODE_NUM] PROGMEM;
 extern const char       _delim;
 
+uint16_t crc16_update(uint16_t& crc, const char* const p_str);
+uint16_t randomID(const char* const p_date, const char* const p_time);
+
 class Status {
     public:
         Status()            { clear(); }
