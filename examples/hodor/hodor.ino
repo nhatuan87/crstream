@@ -3,11 +3,12 @@
 #include "myframe.h"
 #include "board_CressonMote.h"
 
-#define SECOND  1000UL  // millisecond
+#define SECOND  1000    // millisecond
 #define MINUTE    60    // seconds
 #define HOUR    3600    // seconds
+#define DAY    86400    // seconds
 
-const uint16_t  sampleInterval = 15*MINUTE; // Max = 18.2*HOUR
+const uint32_t  sampleInterval = 15*MINUTE;
 const PROGMEM char P_date[]   = __DATE__  ;
 const PROGMEM char P_time[]   = __TIME__  ;
 
@@ -29,12 +30,13 @@ void setup() {
 
 void loop() {
 
-  payload.uptime    = sample_no++ * sampleInterval; // seconds
+  payload.uptime    = sample_no*sampleInterval + millis()/1000; // off-time + on-time
   payload.value     = sensorRead();
   cresson << payload;
 
   cresson.update();
   hwSleep(sampleInterval*SECOND);
+  sample_no++;
 }
 
 // read AVCC
