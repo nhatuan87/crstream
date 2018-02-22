@@ -114,6 +114,7 @@ void descriptor_clear() {
   for(uint8_t i=0; i<sizeof(sensor_presence); i++) {
     EEPROM.update(i, 0);
   }
+  EEPROM.get(0, sensor_presence);
 }
 
 mytime_t& conv(uint32_t uptime) {
