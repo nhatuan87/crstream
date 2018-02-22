@@ -12,12 +12,11 @@ typedef struct {
 
 typedef struct {
   uint16_t  nodeID;
-  uint32_t  max_uptime;
   myframe   payload;
 } descriptor;
 
-descriptor  mydescriptor;
 mytime_t    mytime;
+uint64_t    sensor_presence;
 
 void setup() {
   // serial debug
@@ -34,23 +33,30 @@ void setup() {
   cresson.autosleep =   false   ;
   cresson.begin();
 
-  Serial.println( F("The device is listening to sensor node's power voltage and its uptime."));
-  Serial.println( F("The information would be stored in a descriptor."));
-  Serial.println( F("To clear the descriptor, type '!'."));
-  
-  EEPROM.get(0, mydescriptor);
-  descriptor_print();
+  Serial.println( F("The device is listening to maximum 63 sensor nodes."));
+  Serial.println( F("The most recent sensor values, including its power & uptime, would be stored in EEPROM."));
+  Serial.println( F("DO NOT support sensor node whose ID divisible by 64 (nodeID % 64 == 0)") );
+  Serial.println( F("Type '!': clear all recent sensors' value"));
+  Serial.println( F("Type '?': print all recent sensors' value"));
+
+  EEPROM.get(0, sensor_presence);
 }
 
 void loop() {
+  descriptor  mydescriptor;
   if ( cresson.available() ) {
+    mydescriptor.nodeID    = cresson.sender();
     cresson >> mydescriptor.payload;
-    mydescriptor.max_uptime = max(mydescriptor.max_uptime, mydescriptor.payload.uptime);
-    
-    mydescriptor.nodeID     = cresson.sender();
     if ( ! cresson.status() ) {
-      descriptor_store();
-      descriptor_print();
+      uint8_t descriptor_no  = mydescriptor.nodeID & 0x003F ;
+      if (descriptor_no != 0) {
+        descriptor_store(descriptor_no, mydescriptor);
+        descriptor_print(descriptor_no);
+      } else {
+        Serial.println( F("Don't support Node whose ID % 64 = 0.") );
+        Serial.print  ( F("nodeID = ")                     );
+        Serial.println( mydescriptor.nodeID, HEX           );
+      }
     } else {
       Serial.println( F("Frame error (hexascii format required)") );
     }
@@ -60,38 +66,51 @@ void loop() {
   char c = (char)Serial.read();
   if (c == '!') {
     descriptor_clear();
-    Serial.println(F("The descriptor cleared!"));
+    Serial.println(F("All descriptors cleared!"));
+  } else if (c == '?') {
+    Serial.println( F("-----------------------") );
+    for(uint8_t i=1; i<64; i++) {
+      if ( (sensor_presence >> i) & 0x01) descriptor_print(i);
+    }
+    Serial.println( F("-----------------------") );
   }
 }
 
-void descriptor_print() {
-  Serial.println( F("--DESCRIPTOR----")              );
+void descriptor_print(uint8_t descriptor_no) {
+  uint16_t addr = descriptor_no << 4;
+  descriptor  mydescriptor;
+  EEPROM.get(addr, mydescriptor);
+  Serial.print  ( F("*** NODE #")              );
+  Serial.println( descriptor_no );
   
   Serial.print  ( F("nodeID = ")                     );
   Serial.println( mydescriptor.nodeID, HEX           );
   
-  Serial.print  ( F("max uptime = ")                 );
-  mytime_print(mydescriptor.max_uptime);
-  
-  Serial.print  ( F("recent uptime = ")              );
+  Serial.print  ( F("uptime = ")              );
   mytime_print(mydescriptor.payload.uptime);
 
-  Serial.print  ( F("recent value = ")               );
+  Serial.print  ( F("power = ")               );
   Serial.println( mydescriptor.payload.value         );
 
-  Serial.println( F("----------------")     );
+  Serial.println();
 }
 
-void descriptor_store() {
-  char* obj = (char*) &mydescriptor;
+void descriptor_store(uint8_t descriptor_no, descriptor& mydescriptor) {
+  uint16_t addr = descriptor_no << 4;
+  char*    obj  = (char*) &mydescriptor;
   for(uint8_t i=0; i<sizeof(mydescriptor); i++) {
+    EEPROM.update(addr+i, obj[i]);
+  }
+
+  obj  = (char*) &sensor_presence;
+  bitSet(sensor_presence, descriptor_no);
+  for(uint8_t i=0; i<sizeof(sensor_presence); i++) {
     EEPROM.update(i, obj[i]);
   }
 }
 
 void descriptor_clear() {
-  char* obj = (char*) &mydescriptor;
-  for(uint8_t i=0; i<sizeof(mydescriptor); i++) {
+  for(uint8_t i=0; i<sizeof(sensor_presence); i++) {
     EEPROM.update(i, 0);
   }
 }
