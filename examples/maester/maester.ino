@@ -34,8 +34,9 @@ void setup() {
   cresson.begin();
 
   Serial.println( F("The device is listening to maximum 63 sensor nodes."));
-  Serial.println( F("The most recent sensor values, including its power & uptime, would be stored in EEPROM."));
-  Serial.println( F("DO NOT support sensor node whose ID divisible by 64 (nodeID % 64 == 0)") );
+  Serial.println( F("The most recent sensor values, including its power & uptime, would be stored in a EEPROM slot."));
+  Serial.println( F("Every nodes take a slot numberred according to the last 6-bit of its NodeID.") );
+  Serial.println( F("The device does NOT support sensor node whose ID divisible by 64 (Eg. nodeID=0x12C0 )") );
   Serial.println( F("Type '!': clear all recent sensors' value"));
   Serial.println( F("Type '?': print all recent sensors' value"));
 
@@ -80,7 +81,7 @@ void descriptor_print(uint8_t descriptor_no) {
   uint16_t addr = descriptor_no << 4;
   descriptor  mydescriptor;
   EEPROM.get(addr, mydescriptor);
-  Serial.print  ( F("*** NODE #")              );
+  Serial.print  ( F("*** SLOT #")              );
   Serial.println( descriptor_no );
   
   Serial.print  ( F("nodeID = ")                     );
