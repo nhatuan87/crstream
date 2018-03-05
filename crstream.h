@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.1 - Tuan Tran
+ * v0.2 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -13,7 +13,6 @@
 using namespace std;
 
 #define BAUDMODE_NUM      7
-#define TIMEOUTMS       100
 #define DEBUG_EN
 
 // Valid data rate
@@ -91,7 +90,7 @@ class Status {
 
 class basic_crstream {
     public:
-        basic_crstream(Stream& serial);
+        basic_crstream(Stream& serial, uint32_t timeoutms);
         uint16_t                selfID      ;
         uint16_t                destID      ;
         uint16_t                panID       ;
@@ -105,7 +104,7 @@ class basic_crstream {
         virtual void            begin(){};
         void                    update();
         bool                    status()        {return _status.fail;}
-        uint16_t                available()     {return _status.available;}
+        uint16_t                available()     {_status.available = min(_status.length/2 - _getnum, (uint16_t)serial.available()/2); return _status.available;}
         uint16_t                sender()        {return _status.sender;}
         void                    flush()     ;
         void                    writecmd(const char* const p_str, const uint16_t num, ...);
@@ -114,14 +113,16 @@ class basic_crstream {
         template<typename T> basic_crstream& operator>> (T& payload);
 
     private:
+        const uint32_t          _timeoutms   ;
         bool                    _isSleeping  ;
         bool                    _isWriting   ;
         uint32_t                _timems      ;
         Status                  _status      ;
         uint8_t                 _serialAvailable ;
+        uint8_t                 _getnum;
         basic_iserialstream<char, char_traits<char>, Stream> _cin;
         
-        void                    _clear()         { _clearbuf(); _status.clear(); }
+        void                    _clear()         { _cin.clear(); _clearbuf(); _status.clear(); _getnum = 0;}
         int                     _get()       ;
         void                    _rxProcess() ;
         bool                    _timeout()   ;
@@ -139,14 +140,14 @@ template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
 }
 
 template<typename T> basic_crstream& basic_crstream::operator>> (T& payload){
-    if ( _status.available >= (int)sizeof(T) ) {
+    if ( this->available() >= sizeof(T) ) {
         char* s = (char*) &payload;
         for (uint8_t i = sizeof(T); i != 0; i--) {
             int retval = _get();
             _status.fail |= (retval == -1);
             s[i-1] = (char)retval;
         }
-        _status.available -= sizeof(T);
+        _getnum += sizeof(T);
     } else {
         _status.fail = true;
     }
@@ -156,7 +157,7 @@ template<typename T> basic_crstream& basic_crstream::operator>> (T& payload){
 template<class Tserial=HardwareSerial>
 class crstream : public basic_crstream {
     public:
-        crstream(Tserial& serial) : basic_crstream(serial){};
+        crstream(Tserial& serial, uint32_t timeoutms=100) : basic_crstream(serial, timeoutms){};
         void    begin();
 };
 

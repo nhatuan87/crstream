@@ -69,9 +69,10 @@ uint16_t randomID(const char* const p_date, const char* const p_time) {
     return crc;
 }
 
-basic_crstream::basic_crstream(Stream& serial)
+basic_crstream::basic_crstream(Stream& serial, uint32_t timeoutms)
     : serial   ( serial   )
-    , _cin     ( serial   ) {
+    , _cin     ( serial   )
+    , _timeoutms(timeoutms) {
     selfID      =         0 ;
     destID      =    0xFFFF ;
     panID       =         0 ;
@@ -85,18 +86,22 @@ basic_crstream::basic_crstream(Stream& serial)
 
 void basic_crstream::update() {
 
-    // complete any outstanding command, old message/command status would be cleared
-    if ( _isWriting ) {
-        flush();
-    }
-    // process any arriving message, old message/command status would be cleared
-    else if (serial.available()) {
+    if (serial.available()) {
+        // Process rx message. We know that the process is ongoing by checking the number of available chars
+        _serialAvailable  = serial.available();
         _rxProcess();
+        if (serial.available() != _serialAvailable) _timems = millis();
+        // reset RX state when timeout
+        if (_timeout()) _clear();
         _isSleeping = false;
     }
+    // complete any outstanding command, old message/command status would be cleared
+    else if ( _isWriting ) {
+        flush();
+    }
 
-    // When autosleep function enabled, command status or arriving message is unable to check.
-    // If you want to check arriving message or command status, please disable this function in advance.
+    // If autosleep function is enabled, Cresson would go into sleep mode right after transmission.
+    // It can not receive any message.
     if (autosleep and !_isSleeping) {
         writecmd(P_sleep, 1, 0x9999); // sleep 9999 seconds (BCD format)
         flush();
@@ -107,101 +112,78 @@ void basic_crstream::update() {
 // Private functions
 //-------------------------------------------
 void basic_crstream::_rxProcess() {
-    _status.clear();
-    _timems = millis();
-    while ( !_timeout() ) {
+    switch (_status.rxstate) {
+        // find header
+        case RX_INIT:
+            if (serial.available() >= (int)sizeof(_tempbuf) ) {
+                _cin.getline(_tempbuf, sizeof(_tempbuf), ' ');
+                // compare to header, clear buffer if unmatched
+                if (strcmp_P(_tempbuf, P_mhdata) == 0) _status.rxstate = RX_SENDER;
+                else _clear();
+            }
+            break;
 
-        // if the number of available character changes, we know that the process is ongoing
-        if (serial.available() != _serialAvailable) {
-            _serialAvailable  = serial.available();
-            _timems = millis();
-        }
-
-        // reset flag to goodbit
-        _cin.clear();
-
-        switch (_status.rxstate) {
-            // find header
-            case RX_INIT:
-                if (serial.available() >= (int)sizeof(_tempbuf) ) {
-                    _cin.getline(_tempbuf, sizeof(_tempbuf), ' ');
-                    // compare to header, clear buffer if unmatched
-                    if (strcmp_P(_tempbuf, P_mhdata) == 0) _status.rxstate = RX_SENDER;
-                    else _clear();
+        case RX_SENDER:
+            if (serial.available() >= 5 ) {
+                _cin >> hex >> _status.sender;
+                if ( !_cin.fail() ) {
+                    _status.rxstate = RX_DEST;
+                } else {
+                    _clear();
                 }
-                break;
+            }
+            break;
 
-            case RX_SENDER:
-                if (serial.available() >= 5 ) {
-                    _cin >> hex >> _status.sender;
-                    if ( !_cin.fail() ) {
-                        _status.rxstate = RX_DEST;
-                    } else {
-                        _clear();
-                    }
+        case RX_DEST:
+            if (serial.available() >= 5 ) {
+                _cin >> hex >> _status.destination;
+                if ( !_cin.fail() ) {
+                    _status.rxstate = RX_ID;
+                } else {
+                    _clear();
                 }
-                break;
+            }
+            break;
 
-            case RX_DEST:
-                if (serial.available() >= 5 ) {
-                    _cin >> hex >> _status.destination;
-                    if ( !_cin.fail() ) {
-                        _status.rxstate = RX_ID;
-                    } else {
-                        _clear();
-                    }
+        case RX_ID:
+            if (serial.available() >= 5 ) {
+                _cin >> hex >> _status.id;
+                if ( !_cin.fail() ) {
+                    _status.rxstate = RX_RSSI;
+                } else {
+                    _clear();
                 }
-                break;
+            }
+            break;
 
-            case RX_ID:
-                if (serial.available() >= 5 ) {
-                    _cin >> hex >> _status.id;
-                    if ( !_cin.fail() ) {
-                        _status.rxstate = RX_RSSI;
-                    } else {
-                        _clear();
-                    }
+        case RX_RSSI:
+            if (serial.available() >= 5 ) {
+                _cin >> dec >> _status.rssi;
+                if ( !_cin.fail() ) {
+                    _status.rxstate = RX_LENGTH;
+                } else {
+                    _clear();
                 }
-                break;
+            }
+            break;
 
-            case RX_RSSI:
-                if (serial.available() >= 5 ) {
-                    _cin >> dec >> _status.rssi;
-                    if ( !_cin.fail() ) {
-                        _status.rxstate = RX_LENGTH;
-                    } else {
-                        _clear();
-                    }
+        case RX_LENGTH:
+            if (serial.available() >= 6 ) {
+                _cin >> hex >> _status.length;
+                if ( !_cin.fail() ) {
+                    _cin.ignore(1, ' '); // skip whitespace
+                    _status.rxstate = RX_PAYLOAD;
+                } else {
+                    _clear();
                 }
-                break;
+            }
+            break;
 
-            case RX_LENGTH:
-                if (serial.available() >= 6 ) {
-                    _cin >> hex >> _status.length;
-                    if ( !_cin.fail() ) {
-                        _cin.ignore(1, ' '); // skip whitespace
-                        _status.rxstate = RX_PAYLOAD;
-                    } else {
-                        _clear();
-                    }
-                }
-                break;
-
-            case RX_PAYLOAD:
-                if (serial.available() >= (int)_status.length ) {
-                    _status.available = _status.length/2;
-                }
-                break;
-
-            case RX_ROUTE:
-            default:
-                break;
-        }
-        
-        if (_status.available > 0) break;
-    } //while ( !_timeout() )
-
-    if (_timeout()) _clear();
+        case RX_PAYLOAD:
+        case RX_ROUTE:
+        default:
+            break;
+    }
 }
 
 int basic_crstream::_get () {
@@ -246,10 +228,16 @@ void basic_crstream::writecmd(const char* const p_str, const uint16_t num, ...) 
 void basic_crstream::flush() {
     serial.println();
     serial.flush();
-    _rxProcess();
+    _timems = millis();
+    while (! _timeout()) {
+        if (serial.available()) {
+            _clearbuf();
+            _timems = millis();
+        }
+    }
     _isWriting = false;
 }
 
 bool basic_crstream::_timeout() {
-    return millis() - _timems > TIMEOUTMS;
+    return millis() - _timems > _timeoutms;
 }
