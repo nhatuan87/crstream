@@ -86,17 +86,21 @@ basic_crstream::basic_crstream(Stream& serial, uint32_t timeoutms)
 
 void basic_crstream::update() {
 
-    if (serial.available()) {
-        // Process rx message. We know that the process is ongoing by checking the number of available chars
-        _serialAvailable  = serial.available();
-        _rxProcess();
-        if (serial.available() != _serialAvailable) _timems = millis();
-        // reset RX state when timeout
-        if (_timeout()) _clear();
+    _rxProcess();
+    // Process rx message
+    if (_status.rxstate != _laststate) {
+        _laststate  = _status.rxstate;
+        _timems = millis();
         _isSleeping = false;
+    } 
+    // reset state when timeout
+    else if (_status.rxstate != RX_INIT and _timeout()) {
+        _clear();
+        _timems = millis();
     }
-    // complete any outstanding command, old message/command status would be cleared
-    else if ( _isWriting ) {
+    
+    // complete any outstanding command
+    if ( _isWriting ) {
         flush();
     }
 
@@ -116,10 +120,13 @@ void basic_crstream::_rxProcess() {
         // find header
         case RX_INIT:
             if (serial.available() >= (int)sizeof(_tempbuf) ) {
-                _cin.getline(_tempbuf, sizeof(_tempbuf), ' ');
+                _cin.getline(_tempbuf, sizeof(_tempbuf), '\n');
                 // compare to header, clear buffer if unmatched
-                if (strcmp_P(_tempbuf, P_mhdata) == 0) _status.rxstate = RX_SENDER;
-                else _clear();
+                if (strcmp_P(_tempbuf, P_mhdata) == 0) {
+                    _status.rxstate = RX_SENDER;
+                } else {
+                    _clear();
+                }
             }
             break;
 
@@ -180,7 +187,15 @@ void basic_crstream::_rxProcess() {
             break;
 
         case RX_PAYLOAD:
+            if (_status.length/2 == _getnum) {
+                _status.rxstate = RX_ROUTE;
+            }
+            break;
+
         case RX_ROUTE:
+            _clear();
+            break;
+
         default:
             break;
     }

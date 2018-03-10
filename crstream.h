@@ -118,7 +118,7 @@ class basic_crstream {
         bool                    _isWriting   ;
         uint32_t                _timems      ;
         Status                  _status      ;
-        uint8_t                 _serialAvailable ;
+        uint8_t                 _laststate;
         uint8_t                 _getnum;
         basic_iserialstream<char, char_traits<char>, Stream> _cin;
         
@@ -142,6 +142,7 @@ template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
 template<typename T> basic_crstream& basic_crstream::operator>> (T& payload){
     if ( this->available() >= sizeof(T) ) {
         char* s = (char*) &payload;
+        // s[0] = payload's LSB
         for (uint8_t i = sizeof(T); i != 0; i--) {
             int retval = _get();
             _status.fail |= (retval == -1);
