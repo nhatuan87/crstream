@@ -1,7 +1,17 @@
 #include <crstream.h>
 #include <EEPROM.h>
-#include "board_CressonMote.h"
 #include "myframe.h"
+
+// Cresson instance
+#if defined(HAVE_HWSERIAL1)
+  crstream<>  cresson(Serial1);
+#else
+  #include <SoftwareSerial.h>
+  #define   CRESSON_RX      7
+  #define   CRESSON_TX      8
+  SoftwareSerial            Serial1(CRESSON_RX, CRESSON_TX);
+  crstream<SoftwareSerial>  cresson(Serial1);
+#endif
 
 typedef struct {
     uint16_t    days;
@@ -20,23 +30,16 @@ uint64_t    sensor_presence;
 
 void setup() {
   // serial debug
-  Serial.begin(9600);
+  Serial.begin(19200);
 
   // cresson setup
-  cresson.baudmode  =    B_9600 ; // default: 9600 bps
-  cresson.selfID    =         0 ; // default: 0x0000
-  cresson.destID    =    0xFFFF ; // default: 0xFFFF
-  cresson.panID     =         0 ; // default: 0x0000
-  cresson.datarate  =     D_10K ; // default: 10 kbps
-  cresson.channel   =        33 ; // default: 33
   cresson.mhmode    =  MHMASTER ; // default: MHSLAVE
-  cresson.autosleep =   false   ;
   cresson.begin();
 
-  Serial.println( F("The device is listening to maximum 63 sensor nodes."));
-  Serial.println( F("The most recent sensor values, including its power & uptime, would be stored in a EEPROM slot."));
-  Serial.println( F("Every nodes take a slot numberred according to the last 6-bit of its NodeID.") );
-  Serial.println( F("The device does NOT support sensor node whose ID divisible by 64 (Eg. nodeID=0x12C0 )") );
+  Serial.println( F("The device is listening upto 63 sensor nodes which send its uptime and VCC."));
+  Serial.println( F("A slot of 16 bytes EEPROM are reserved for a sensor, making totally 1024 bytes of EEPROM."));
+  Serial.println( F("Slot 0 deditated for this Gateway, slot 1 for Sensor whose ID%64=1, etc.") );
+  Serial.println( F("The device does NOT support sensor whose ID divisible by 64.") );
   Serial.println( F("Type '!': clear all recent sensors' value"));
   Serial.println( F("Type '?': print all recent sensors' value"));
 
@@ -104,7 +107,7 @@ void descriptor_store(uint8_t descriptor_no, descriptor& mydescriptor) {
   }
 
   obj  = (char*) &sensor_presence;
-  bitSet(sensor_presence, descriptor_no);
+  bitSet(obj[descriptor_no/8], descriptor_no%8);
   for(uint8_t i=0; i<sizeof(sensor_presence); i++) {
     EEPROM.update(i, obj[i]);
   }

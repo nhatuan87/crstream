@@ -133,7 +133,8 @@ class basic_crstream {
 
 template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
     if (! _isWriting) {
-        writecmd(P_send, 0);
+        writecmd(P_sendto, 1, destID);
+        serial.print(_delim);
     }
     _write((char*) &payload, sizeof(T) );
     return *this;
@@ -165,7 +166,7 @@ class crstream : public basic_crstream {
 template<class Tserial>
 void crstream<Tserial>::begin() {
     if (baudmode == 0 or baudmode > BAUDMODE_NUM) baudmode = B_9600; // baudmode = 1~BAUDMODE_NUM
-    if (datarate >  3                           ) datarate = D_10K ;
+    if (datarate >  3                           ) datarate = D_50K ;
 
     Tserial* port = (Tserial*) &serial;
     for (uint8_t i = 1; i <= BAUDMODE_NUM; i++) {
@@ -189,7 +190,7 @@ void crstream<Tserial>::begin() {
     writecmd(P_sysreg, 2, 0x08, 0                 ); flush();    // TxRetry
     writecmd(P_sysreg, 2, 0x0B, 1                 ); flush();    // Wake by Uart
     writecmd(P_sysreg, 2, 0x30, mhmode            ); flush();
-    if (mhmode == MHSLAVE) {
+    if (mhmode == MHREPEATER) {
         writecmd(P_mhrtreq, 0);
         flush();
     }

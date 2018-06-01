@@ -77,7 +77,7 @@ basic_crstream::basic_crstream(Stream& serial, uint32_t timeoutms)
     destID      =    0xFFFF ;
     panID       =         0 ;
     baudmode    = B_9600    ;
-    datarate    = D_10K     ;
+    datarate    = D_50K     ;
     channel     =        33 ;
     mhmode      = MHSLAVE   ;
     _isSleeping = false     ;
