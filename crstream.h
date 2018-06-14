@@ -71,9 +71,6 @@ extern char             _tempbuf[7];
 extern const uint32_t   _baud[BAUDMODE_NUM] PROGMEM;
 extern const char       _delim;
 
-uint16_t crc16_update(uint16_t& crc, const char* const p_str);
-uint16_t randomID(const char* const p_date, const char* const p_time);
-
 class Status {
     public:
         Status()            { clear(); }
@@ -107,6 +104,7 @@ class basic_crstream {
         uint16_t                available()     {_status.available = min(_status.length/2 - _getnum, (uint16_t)serial.available()/2); return _status.available;}
         uint16_t                sender()        {return _status.sender;}
         void                    flush()     ;
+        uint16_t                rcvframelength() {return _status.length/2;}
         void                    writecmd(const char* const p_str, const uint16_t num, ...);
 
         template<typename T> basic_crstream& operator<< (T payload);

@@ -48,27 +48,6 @@ void Status::clear() {
     rxstate         = RX_INIT;
 }
 
-uint16_t crc16_update(uint16_t& crc, const char* const p_str) {
-    for (unsigned int i = 0; i < strlen_P(p_str); i++) {
-        char c = pgm_read_byte_near(p_str + i);
-        crc ^= c;
-        for (int i = 0; i < 8; ++i) {
-            if (crc & 1)
-                crc = (crc >> 1) ^ 0xA001;
-            else
-                crc = (crc >> 1);
-        }
-    }
-    return crc;
-}
-
-uint16_t randomID(const char* const p_date, const char* const p_time) {
-    uint16_t crc = 0xFFFF;
-    crc16_update(crc, p_date);
-    crc16_update(crc, p_time);
-    return crc;
-}
-
 basic_crstream::basic_crstream(Stream& serial, uint32_t timeoutms)
     : serial   ( serial   )
     , _cin     ( serial   )
