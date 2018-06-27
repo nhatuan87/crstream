@@ -106,6 +106,7 @@ class basic_crstream {
         void                    flush()     ;
         uint16_t                rcvframelength() {return _status.length/2;}
         void                    writecmd(const char* const p_str, const uint16_t num, ...);
+        void                    sleep();
 
         template<typename T> basic_crstream& operator<< (T payload);
         template<typename T> basic_crstream& operator>> (T& payload);

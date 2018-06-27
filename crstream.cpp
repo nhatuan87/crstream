@@ -86,9 +86,7 @@ void basic_crstream::update() {
     // If autosleep function is enabled, Cresson would go into sleep mode right after transmission.
     // It can not receive any message.
     if (autosleep and !_isSleeping) {
-        writecmd(P_sleep, 1, 0x9999); // sleep 9999 seconds (BCD format)
-        flush();
-        _isSleeping = true;
+        sleep();
     }
 }
 
@@ -234,4 +232,10 @@ void basic_crstream::flush() {
 
 bool basic_crstream::_timeout() {
     return millis() - _timems > _timeoutms;
+}
+
+void basic_crstream::sleep() {
+    writecmd(P_sleep, 1, 0x9999); // sleep 9999 seconds (BCD format)
+    flush();
+    _isSleeping = true;
 }

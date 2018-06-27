@@ -1,4 +1,5 @@
 #include <crstream.h>
+#include <uniqueID.h>
 
 // Cresson instance
 #if defined(HAVE_HWSERIAL1)
@@ -11,15 +12,12 @@
   crstream<SoftwareSerial>  cresson(Serial1);
 #endif
 
-const PROGMEM char P_date[]   = __DATE__  ;
-const PROGMEM char P_time[]   = __TIME__  ;
-
 void setup() {
   // serial debug
   Serial.begin(19200);
 
   // cresson setup
-  cresson.selfID    = randomID(P_date, P_time) ; // default: 0x0000
+  cresson.selfID    = uniqueID() ; // default: 0x0000
   cresson.begin();
 }
 
@@ -49,5 +47,3 @@ void loop() {
   }
   cresson.update();
 }
-
-
