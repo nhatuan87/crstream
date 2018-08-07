@@ -1,0 +1,79 @@
+#######################################
+
+# Syntax Coloring Map For crstream
+
+####################################### 
+
+# Class (KEYWORD1)
+
+#######################################
+
+
+
+crstream	KEYWORD1
+cresson	KEYWORD1
+
+
+
+#######################################
+
+# Methods and Functions (KEYWORD2)
+
+#######################################	
+
+
+begin	KEYWORD2
+decodeFail	KEYWORD2
+sender	KEYWORD2
+destination	KEYWORD2
+length	KEYWORD2
+available	KEYWORD2
+rssi	KEYWORD2
+onReceivedCallback	KEYWORD2
+onReceivingCallback	KEYWORD2
+sendFailedCallback	KEYWORD2
+wiringErrorCallback	KEYWORD2
+cresson_onReceived	KEYWORD2
+cresson_onReceiving	KEYWORD2
+cresson_sendFailed	KEYWORD2
+cresson_wiringError	KEYWORD2
+sleep	KEYWORD2
+wakeup	KEYWORD2
+listen	KEYWORD2
+selfID	KEYWORD2
+destID	KEYWORD2
+panID	KEYWORD2
+baudmode	KEYWORD2
+datarate	KEYWORD2
+channel	KEYWORD2
+mhmode	KEYWORD2
+autosleep	KEYWORD2
+datamode	KEYWORD2
+uniqueID	KEYWORD2
+isAlive	KEYWORD2
+
+
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+ 
+
+DATA_200K	LITERAL1
+DATA_100K	LITERAL1
+DATA_50K	LITERAL1
+DATA_10K	LITERAL1
+BAUD_9600	LITERAL1
+BAUD_19200	LITERAL1
+BAUD_38400	LITERAL1
+BAUD_57600	LITERAL1
+BAUD_115200	LITERAL1
+BAUD_230400	LITERAL1
+BAUD_460800	LITERAL1
+P2P	LITERAL1
+MHMASTER	LITERAL1
+MHREPEATER	LITERAL1
+MHSLAVE	LITERAL1
+BROADCAST_ID	LITERAL1
+TEXT_MODE	LITERAL1
+BIN_MODE	LITERAL1

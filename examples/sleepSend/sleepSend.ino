@@ -12,6 +12,7 @@
   crstream<SoftwareSerial>  cresson(Serial1);
 #endif
 
+const PROGMEM char myString[]   = "And who are you, the proud lord said, that I must bow so low? Only a cat of a different coat, that's all the truth I know.\r\n"  ;
 void setup() {
   // serial debug
   Serial.begin(19200);
@@ -19,32 +20,17 @@ void setup() {
   // cresson setup
   cresson.selfID    = uniqueID() ; // default: 0x0000
   cresson.panID     = 0x0123;
+  cresson.autosleep = true;
   cresson.begin();
 }
 
 void loop() {
-  cresson.listen();
-}
-
-// RF --> serial
-void cresson_onReceiving() {
-  while ( cresson.available() ) {
-    char rx = 0;
-    cresson >> rx;
-    Serial.write(rx);
+  uint16_t i = 0;
+  while (i<strlen_P(myString)) {
+    char c = pgm_read_byte_near(myString + i);
+    cresson << c;
+    i++;
   }
-}
-
-// serial --> RF (upto 16 bytes per frame)
-void serialEvent() {
-  uint16_t txcnt = 0;
-  uint32_t timems = millis();
-  while ( millis() - timems < 10 and txcnt < 16) {
-    if ( Serial.available() ) {
-      char tx = (char) Serial.read();
-      cresson << tx;
-      timems = millis();
-      txcnt++;
-    }
-  }
+  cresson.listen(); // actually send data
+  delay(5000);
 }
