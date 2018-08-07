@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.2 - Tuan Tran
+ * v0.6.3 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -254,7 +254,7 @@ bool basic_crstream::_listen(uint32_t timems) {
         _update();
         if (_currentState == stSLEEP                                 ) break;
         if (_currentState == stIDLE and _result.received             ) break;
-        if (_currentState == stIDLE and millis() - localtime < timems) break;
+        if (_currentState == stIDLE and millis() - localtime > timems) break;
     } while ( true );
     bool received = _result.received;
     _result.received = false;
