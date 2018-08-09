@@ -3,12 +3,12 @@
 
 typedef struct {
 	float    analogA0;
-	uint8_t	 ledStatus;
+	bool	 ledStatus;
 } req_frame;
 
 typedef struct {
 	uint32_t networkTime;
-	uint8_t  ledStatus;
+	bool	 ledStatus;
 } res_frame;
 
 #endif

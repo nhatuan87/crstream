@@ -142,7 +142,7 @@ class basic_crstream {
         void                    _update()    ;
         int                     _getchr()    ;
         int                     _getint()    ;
-        bool                    _timeout(uint32_t timeoutms=100)   ;
+        bool                    _timeout(uint32_t timeoutms=10)   ;
         void                    _clear()     ;
         void                    _write(const char* bytes, const uint8_t length);
         void                    _switchSM(uint8_t newState);
@@ -214,7 +214,7 @@ bool crstream<Tserial>::begin() {
         writecmd(P_mhrtreq, 0);
         execute();
     }
-    listen();
+    listen(100);
     return true;
 }
 

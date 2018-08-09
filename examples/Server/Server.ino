@@ -33,9 +33,9 @@ void cresson_onReceived() {
   res_frame sendFrame;
   if (cresson.available() == sizeof(rcvFrame) ) {
     cresson >> rcvFrame.analogA0 >> rcvFrame.ledStatus;
-    bool ledStatus = !(bool)rcvFrame.ledStatus;
+    bool ledStatus = !rcvFrame.ledStatus;
     sendFrame.networkTime = millis()/1000;
-    sendFrame.ledStatus = (uint8_t)ledStatus;
+    sendFrame.ledStatus = ledStatus;
     cresson << sendFrame;
     Serial.print(sendFrame.networkTime);
     Serial.print(F(" ["));

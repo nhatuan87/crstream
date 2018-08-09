@@ -35,16 +35,10 @@ void cresson_onReceiving() {
   }
 }
 
-// serial --> RF (upto 16 bytes per frame)
+// serial --> RF
 void serialEvent() {
-  uint16_t txcnt = 0;
-  uint32_t timems = millis();
-  while ( millis() - timems < 10 and txcnt < 16) {
-    if ( Serial.available() ) {
-      char tx = (char) Serial.read();
-      cresson << tx;
-      timems = millis();
-      txcnt++;
-    }
+  while ( Serial.available() ) {
+    char tx = (char) Serial.read();
+    cresson << tx;
   }
 }

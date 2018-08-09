@@ -30,7 +30,7 @@ void setup() {
 
 void loop() {
   float analogA0 = 3.3*analogRead(A0)/1024;
-  cresson << analogA0 << (uint8_t)ledStatus;
+  cresson << analogA0 << ledStatus;
   bool received = cresson.listen(3000);
   if (received) {
     digitalWrite(LED_BUILTIN, ledStatus);
@@ -44,7 +44,7 @@ void cresson_onReceived() {
   res_frame rcvFrame;
   if ( cresson.available() == sizeof(rcvFrame) ) {
     cresson >> rcvFrame;
-    ledStatus = (bool)rcvFrame.ledStatus;
+    ledStatus = rcvFrame.ledStatus;
     networkTime = rcvFrame.networkTime;
   }
 }

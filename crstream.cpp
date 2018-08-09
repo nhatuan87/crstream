@@ -142,9 +142,9 @@ bool basic_crstream::listen(uint32_t timems) {
         if (_currentState != stIDLE) _listen();
         serial.println();
         serial.flush();
+        _switchSM( stTX_HEADER_MHSEND );
         _txState = stTX_IDLE;
         _result.alive = true;
-        _switchSM( stTX_HEADER_MHSEND );
     }
     bool received = _listen(timems);
     if (autosleep and _currentState != stSLEEP) sleep();
@@ -174,12 +174,12 @@ void basic_crstream::writecmd(const char* const p_str, const uint16_t num, ...) 
 void basic_crstream::execute() {
     serial.println();
     serial.flush();
+    _switchSM( stWAIT_FOR_IDLE );
     _listen();
 }
 
 // wake from sleep
 void basic_crstream::wakeup() {
-	_switchSM( stWAIT_FOR_IDLE );
     execute();
     execute();
 }
@@ -377,7 +377,7 @@ void basic_crstream::_update() {
                     _switchSM( stWAIT_FOR_IDLE    );
                 }
             }
-            if (_timeout()) {
+            if (_timeout(100)) {
                 _result.alive = false;
                 if (_wiringErrorFnc) _wiringErrorFnc();
                 _switchSM( stWAIT_FOR_IDLE );
