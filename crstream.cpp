@@ -144,7 +144,7 @@ bool basic_crstream::listen(uint32_t timems) {
         serial.flush();
         _switchSM( stTX_HEADER_MHSEND );
         _txState = stTX_IDLE;
-        _result.alive = true;
+        _result.alive = false;
     }
     bool received = _listen(timems);
     if (autosleep and _currentState != stSLEEP) sleep();
@@ -232,17 +232,46 @@ void basic_crstream::_write(const char* bytes, const uint8_t length) {
 }
 
 // find header
-bool basic_crstream::_headerMatched(const char* const p_str) {
+uint8_t basic_crstream::_headerMatching() {
     if (serial.available() >= (int)sizeof(_tempbuf) ) {
         if ( serial.peek() == 'M') {
             serial.readBytesUntil(' ', _tempbuf, 6);
             _tempbuf[6] = '\0';
-            if (strcmp_P(_tempbuf, p_str) == 0) return true;
+            if (strcmp_P(_tempbuf, P_mhdata) == 0) return MHDATA_FOUND;
+            if (strcmp_P(_tempbuf, P_mhsend) == 0) return MHSEND_FOUND;
+            if (strcmp_P(_tempbuf, P_mhack ) == 0) return MHACK_FOUND ;
+            return HEADER_UNKNOWN;
         } else {
             serial.read(); // skip the character if it's not 'M'
         }
     }
-    return false;
+    return FINDING_HEADER;
+}
+
+
+void basic_crstream::_findHeader() {
+    switch ( _headerMatching() ) {
+        case MHDATA_FOUND:
+            serial.read(); // skip whitespace
+            _switchSM( stRX_SENDER );
+            break;
+        case MHSEND_FOUND:
+            _result.alive = true;
+            if (destID == BROADCAST_ID or destID == selfID) {
+                _result.sendAck = 0;
+                _switchSM( stWAIT_FOR_IDLE );
+            } else {
+                _switchSM( stTX_HEADER_MHACK );
+            }
+            break;
+        case MHACK_FOUND:
+            _switchSM( stTX_RESPOND );
+            break;
+        case FINDING_HEADER:
+        case HEADER_UNKNOWN:
+        default:
+            break;
+    }
 }
 
 // The function would stop if cresson in IDLE state, AND any of following condition met:
@@ -267,21 +296,12 @@ void basic_crstream::_update() {
     switch (_currentState) {
         // IDLE state: wait for message / command
         case stIDLE:
-            if (serial.available()) _switchSM( stRX_HEADER );
+            _findHeader();
             break;
 
         // low-power
         case stSLEEP:
             if (serial.available()) _switchSM( stWAIT_FOR_IDLE );
-            break;
-
-        // find MHDATA
-        case stRX_HEADER:
-            if (_headerMatched(P_mhdata)) {
-                serial.read(); // skip whitespace
-                _switchSM( stRX_SENDER );
-            }
-            if (_timeout()) _switchSM( stWAIT_FOR_IDLE );
             break;
 
         // find sender ID
@@ -369,14 +389,7 @@ void basic_crstream::_update() {
 
         // find MHSEND
         case stTX_HEADER_MHSEND:
-            if (_headerMatched(P_mhsend)) {
-                if (destID != BROADCAST_ID and destID != selfID) {
-                    _switchSM( stTX_HEADER_MHACK );
-                } else {
-                    _result.sendAck = 0;
-                    _switchSM( stWAIT_FOR_IDLE    );
-                }
-            }
+            _findHeader();
             if (_timeout(100)) {
                 _result.alive = false;
                 if (_wiringErrorFnc) _wiringErrorFnc();
@@ -386,7 +399,7 @@ void basic_crstream::_update() {
 
         // find MHACK
         case stTX_HEADER_MHACK:
-            if (_headerMatched(P_mhack)) _switchSM( stTX_RESPOND );
+            _findHeader();
             if (_timeout(3000)) {
                 if (_sendFailedFnc) _sendFailedFnc();
                 _switchSM( stWAIT_FOR_IDLE );
@@ -411,11 +424,11 @@ void basic_crstream::_update() {
         // wait for idle
         case stWAIT_FOR_IDLE:
         default:
-            while (serial.available()) {
+            while (serial.available() and serial.peek() != 'M') {
                 serial.read();
                 _timems = millis();
             }
-            if (_timeout()) {
+            if ( (serial.available() and serial.peek() == 'M') or _timeout()) {
                 _clear();
                 _switchSM( stIDLE );
             }

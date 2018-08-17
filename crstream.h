@@ -40,16 +40,15 @@ typedef enum {
     stIDLE              = 0,
     stWAIT_FOR_IDLE     = 1,
     stSLEEP             = 2,
-    stRX_HEADER         = 3,
-    stRX_SENDER         = 4,
-    stRX_DEST           = 5,
-    stRX_MSGID          = 6,
-    stRX_RSSI           = 7,
-    stRX_LENGTH         = 8,
-    stRX_PAYLOAD        = 9,
-    stTX_HEADER_MHSEND  = 10,
-    stTX_HEADER_MHACK   = 11,
-    stTX_RESPOND        = 12,
+    stRX_SENDER         = 3,
+    stRX_DEST           = 4,
+    stRX_MSGID          = 5,
+    stRX_RSSI           = 6,
+    stRX_LENGTH         = 7,
+    stRX_PAYLOAD        = 8,
+    stTX_HEADER_MHSEND  = 9,
+    stTX_HEADER_MHACK   = 10,
+    stTX_RESPOND        = 11,
 } RXSTATE;
 
 typedef enum {
@@ -61,6 +60,14 @@ typedef enum {
     TEXT_MODE,
     BIN_MODE
 } DATA_MODE;
+
+typedef enum {
+    MHDATA_FOUND,
+    MHSEND_FOUND,
+    MHACK_FOUND ,
+    HEADER_UNKNOWN,
+    FINDING_HEADER
+} HEADER_TYPE;
 
 extern const PROGMEM char P_listen[]   ;
 extern const PROGMEM char P_baud[]     ;
@@ -147,7 +154,8 @@ class basic_crstream {
         void                    _write(const char* bytes, const uint8_t length);
         void                    _switchSM(uint8_t newState);
         bool                    _listen(uint32_t timems=100);
-        bool                    _headerMatched(const char* const p_str);
+        uint8_t                 _headerMatching();
+        void                    _findHeader();
 };
 
 template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
@@ -214,7 +222,7 @@ bool crstream<Tserial>::begin() {
         writecmd(P_mhrtreq, 0);
         execute();
     }
-    listen(100);
+    listen(200);
     return true;
 }
 
