@@ -14,6 +14,7 @@
 void setup() {
   // serial debug
   Serial.begin(19200);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   // cresson setup
   cresson.selfID    = uniqueID() ; // default: 0x0000
@@ -24,7 +25,12 @@ void setup() {
   cresson.mhmode    = MHSLAVE;     // default: MHSLAVE
   cresson.baudmode  = BAUD_9600;   // default: BAUD_9600
   cresson.begin();
-  if (!cresson.isAlive()) Serial.println(F("Error: Please check Cresson wiring"));
+  while (!cresson.isAlive()) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+  }
 }
 
 void loop() {

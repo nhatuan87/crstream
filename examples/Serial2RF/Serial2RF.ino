@@ -15,11 +15,18 @@
 void setup() {
   // serial debug
   Serial.begin(19200);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   // cresson setup
   cresson.selfID    = uniqueID() ; // default: 0x0000
   cresson.panID     = 0x0123;
   cresson.begin();
+  while (!cresson.isAlive()) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+  }
 }
 
 void loop() {

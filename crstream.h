@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.5 - Tuan Tran
+ * v0.6.6 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -74,6 +74,7 @@ extern const PROGMEM char P_baud[]     ;
 extern const PROGMEM char P_sleep[]    ;
 extern const PROGMEM char P_reset[]    ;
 extern const PROGMEM char P_mhrtreq[]  ;
+extern const PROGMEM char P_mhrtclr[]  ;
 extern const PROGMEM char P_send[]     ;
 extern const PROGMEM char P_sendto[]   ;
 extern const PROGMEM char P_sysreg[]   ;
@@ -105,6 +106,7 @@ class basic_crstream {
         uint8_t                 datarate    ;
         uint8_t                 channel     ;
         uint8_t                 mhmode      ;
+        uint8_t                 mhroutesel  ;
         bool                    autosleep   ;
         bool                    datamode    ;
         Stream&                 serial      ;
@@ -126,7 +128,7 @@ class basic_crstream {
         void                    wakeup()        ;
         bool                    listen(uint32_t timems=0);
         void                    writecmd(const char* const p_str, const uint16_t num, ...);
-        void                    execute()         ;
+        void                    execute()       ;
         bool                    isAlive()       ;
         // static functions
         static int              asc2hex (char c     );
@@ -156,6 +158,7 @@ class basic_crstream {
         bool                    _listen(uint32_t timems=100);
         uint8_t                 _headerMatching();
         void                    _findHeader();
+        void                    _changeRoute()   ;
 };
 
 template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
@@ -217,10 +220,11 @@ bool crstream<Tserial>::begin() {
     writecmd(P_sysreg, 2, 0x06, 1                 ); execute();    // Clear Channel Assessment
     writecmd(P_sysreg, 2, 0x08, 0                 ); execute();    // TxRetry
     writecmd(P_sysreg, 2, 0x0B, 1                 ); execute();    // Wake by Uart
+    writecmd(P_sysreg, 2, 0x31, mhroutesel        ); execute();    // Route select
     writecmd(P_sysreg, 2, 0x30, mhmode            ); execute();
-    if (mhmode == MHREPEATER) {
-        writecmd(P_mhrtreq, 0);
-        execute();
+    if (mhmode != MHMASTER) {
+        writecmd(P_mhrtclr, 0); execute();
+        writecmd(P_mhrtreq, 0); execute();
     }
     listen(200);
     return true;

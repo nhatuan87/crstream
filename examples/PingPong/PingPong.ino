@@ -14,44 +14,49 @@
 
 uint32_t localtime;
 uint32_t p = 0;
-uint16_t failcnt = 0;
-uint16_t sendcnt = 0;
-uint16_t rcvcnt = 0;
+uint16_t TXCnt        = 0;
+uint16_t RXCnt        = 0;
+uint16_t TXFailedCnt  = 0;
+uint16_t RXFailedCnt  = 0;
 
 void setup() {
   // serial debug
   Serial.begin(19200);
+  pinMode(LED_BUILTIN, OUTPUT);
 
   // cresson setup
   cresson.selfID    = uniqueID() ; // default: 0x0000
   cresson.panID     = 0xABCD;
   cresson.begin();
+  while (!cresson.isAlive()) {
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(100);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
+  }
+  localtime = millis();
 }
 
 void loop() {
   bool msgReceived = cresson.listen(3000);
   if (!msgReceived) {
-    report();
-    restart();
-  }
-  if (sendcnt%100 == 0) report();
-}
-
-void restart() {
+    if (TXCnt != 0 and RXCnt != 0) {
+      RXFailedCnt ++;
+      report();
+    }
     p = 0;
-    sendcnt = 0;
-    failcnt = 0;
-    rcvcnt = 0;
     cresson << p;
-    sendcnt++;
-    localtime = millis();
+    TXCnt++;
+  }
+  if (TXCnt%100 == 0 and TXCnt != 0) report();
 }
 
 void report() {
-    Serial.print(F("Sent:")); Serial.print(sendcnt);
-    Serial.print(F(" Failed:")); Serial.print(failcnt);
-    Serial.print(F(" Received:")); Serial.print(rcvcnt);
-    Serial.print(F(" TOF(ms):")); Serial.print((float)(millis() - localtime)/(sendcnt + rcvcnt));
+    Serial.print(F(">>TX:"             )); Serial.print(TXCnt);
+    Serial.print(F("  TXFailed:"  )); Serial.print((float)TXFailedCnt*100/TXCnt); Serial.print('%');
+    Serial.print(F("  RX:"             )); Serial.print(RXCnt);
+    Serial.print(F("  RXFailed:"  )); Serial.print((float)RXFailedCnt*100/RXCnt); Serial.print('%');
+    Serial.print(F("  TOF:"            )); Serial.print((float)(millis() - localtime)/(TXCnt + RXCnt)); Serial.print(F("mS"));
     Serial.println();  
 }
 
@@ -60,9 +65,9 @@ void cresson_onReceived() {
   if ( cresson.available() == sizeof(p)) {
     cresson >> p;
     Serial.println(p);
-    rcvcnt++;
+    RXCnt++;
     cresson << ++p;
-    sendcnt++;
+    TXCnt++;
   }
 }
 
@@ -71,6 +76,6 @@ void cresson_wiringError() {
 }
 
 void cresson_sendFailed() {
-  failcnt++;
+  TXFailedCnt++;
   Serial.println(F("Send Failed"));
 }

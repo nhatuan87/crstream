@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.5 - Tuan Tran
+ * v0.6.6 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -18,6 +18,7 @@ const PROGMEM char P_baud[]     = "baud="   ;
 const PROGMEM char P_sleep[]    = "sleep="  ;
 const PROGMEM char P_reset[]    = "reset"   ;
 const PROGMEM char P_mhrtreq[]  = "mhrtreq" ;
+const PROGMEM char P_mhrtclr[]  = "mhrtclr" ;
 const PROGMEM char P_send[]     = "send="   ;
 const PROGMEM char P_sendto[]   = "sendto=" ;
 const PROGMEM char P_sysreg[]   = "sysreg=" ;
@@ -59,6 +60,7 @@ basic_crstream::basic_crstream(Stream& serial)
     mhmode                  = MHSLAVE   ;
     autosleep               = false     ;
     datamode                = BIN_MODE  ;
+    mhroutesel              = 1         ;
     _chrnum                 = 0         ;
     _currentState           = stIDLE    ;
     _txState                = stTX_IDLE ;
@@ -138,6 +140,8 @@ bool  basic_crstream::isAlive  () {
 
 // Listen for a message until timeout.
 bool basic_crstream::listen(uint32_t timems) {
+    if  (_currentState == stSLEEP and timems > 0) wakeup();
+
     if ( _txState == stTX_WRITE_DATA ) {
         if (_currentState != stIDLE) _listen();
         serial.println();
@@ -147,7 +151,7 @@ bool basic_crstream::listen(uint32_t timems) {
         _result.alive = false;
     }
     bool received = _listen(timems);
-    if (autosleep and _currentState != stSLEEP) sleep();
+    if (autosleep) sleep();
     return received;
 };
 
@@ -190,6 +194,13 @@ void basic_crstream::sleep() {
     execute();
     _switchSM( stSLEEP );
 }
+
+void basic_crstream::_changeRoute()      {
+    if   (mhroutesel >= 2)  mhroutesel = 1;
+    else                    mhroutesel++;
+    writecmd(P_sysreg, 2, 0x31, mhroutesel );
+    execute();
+};
 
 bool basic_crstream::_timeout(uint32_t timeoutms) {
     return millis() - _timems > timeoutms;
@@ -281,7 +292,6 @@ bool basic_crstream::_listen(uint32_t timems) {
     uint32_t localtime = millis();
     do {
         _update();
-        if (_currentState == stSLEEP                                 ) break;
         if (_currentState == stIDLE and _result.received             ) break;
         if (_currentState == stIDLE and millis() - localtime > timems) break;
     } while ( true );
@@ -401,6 +411,7 @@ void basic_crstream::_update() {
         case stTX_HEADER_MHACK:
             _findHeader();
             if (_timeout(3000)) {
+                _changeRoute();
                 if (_sendFailedFnc) _sendFailedFnc();
                 _switchSM( stWAIT_FOR_IDLE );
             }
