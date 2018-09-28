@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.6 - Tuan Tran
+ * v0.6.7 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -411,7 +411,7 @@ void basic_crstream::_update() {
         case stTX_HEADER_MHACK:
             _findHeader();
             if (_timeout(3000)) {
-                _changeRoute();
+                if (mhmode != MHMASTER) _changeRoute();
                 if (_sendFailedFnc) _sendFailedFnc();
                 _switchSM( stWAIT_FOR_IDLE );
             }

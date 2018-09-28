@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.6 - Tuan Tran
+ * v0.6.7 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
