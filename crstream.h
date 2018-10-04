@@ -220,10 +220,11 @@ bool crstream<Tserial>::begin() {
     writecmd(P_sysreg, 2, 0x06, 1                 ); execute();    // Clear Channel Assessment
     writecmd(P_sysreg, 2, 0x08, 0                 ); execute();    // TxRetry
     writecmd(P_sysreg, 2, 0x0B, 1                 ); execute();    // Wake by Uart
-    writecmd(P_sysreg, 2, 0x31, mhroutesel        ); execute();    // Route select
+    //writecmd(P_sysreg, 2, 0x31, mhroutesel        ); execute();    // Route select, it equals 1 after routing table clear
     writecmd(P_sysreg, 2, 0x30, mhmode            ); execute();
+    listen(200);
+    writecmd(P_mhrtclr, 0); execute(); // clear routing table
     if (mhmode != MHMASTER) {
-        writecmd(P_mhrtclr, 0); execute();
         writecmd(P_mhrtreq, 0); execute();
     }
     listen(200);
