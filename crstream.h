@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.7 - Tuan Tran
+ * v0.6.8 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -106,7 +106,6 @@ class basic_crstream {
         uint8_t                 datarate    ;
         uint8_t                 channel     ;
         uint8_t                 mhmode      ;
-        uint8_t                 mhroutesel  ;
         bool                    autosleep   ;
         bool                    datamode    ;
         Stream&                 serial      ;
@@ -158,7 +157,6 @@ class basic_crstream {
         bool                    _listen(uint32_t timems=100);
         uint8_t                 _headerMatching();
         void                    _findHeader();
-        void                    _changeRoute()   ;
 };
 
 template<typename T> basic_crstream& basic_crstream::operator<< (T payload) {
@@ -220,12 +218,11 @@ bool crstream<Tserial>::begin() {
     writecmd(P_sysreg, 2, 0x06, 1                 ); execute();    // Clear Channel Assessment
     writecmd(P_sysreg, 2, 0x08, 0                 ); execute();    // TxRetry
     writecmd(P_sysreg, 2, 0x0B, 1                 ); execute();    // Wake by Uart
-    //writecmd(P_sysreg, 2, 0x31, mhroutesel        ); execute();    // Route select, it equals 1 after routing table clear
     writecmd(P_sysreg, 2, 0x30, mhmode            ); execute();
     listen(200);
     writecmd(P_mhrtclr, 0); execute(); // clear routing table
-    if (mhmode != MHMASTER) {
-        writecmd(P_mhrtreq, 0); execute();
+    if ( mhmode != MHMASTER ) {
+    	writecmd(P_mhrtreq, 0); execute(); // route request
     }
     listen(200);
     return true;

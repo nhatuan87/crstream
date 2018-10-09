@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.7 - Tuan Tran
+ * v0.6.8 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -60,7 +60,6 @@ basic_crstream::basic_crstream(Stream& serial)
     mhmode                  = MHSLAVE   ;
     autosleep               = false     ;
     datamode                = BIN_MODE  ;
-    mhroutesel              = 1         ;
     _chrnum                 = 0         ;
     _currentState           = stIDLE    ;
     _txState                = stTX_IDLE ;
@@ -194,13 +193,6 @@ void basic_crstream::sleep() {
     execute();
     _switchSM( stSLEEP );
 }
-
-void basic_crstream::_changeRoute()      {
-    if   (mhroutesel >= 2)  mhroutesel = 1;
-    else                    mhroutesel++;
-    writecmd(P_sysreg, 2, 0x31, mhroutesel );
-    execute();
-};
 
 bool basic_crstream::_timeout(uint32_t timeoutms) {
     return millis() - _timems > timeoutms;
@@ -411,7 +403,6 @@ void basic_crstream::_update() {
         case stTX_HEADER_MHACK:
             _findHeader();
             if (_timeout(3000)) {
-                if (mhmode != MHMASTER) _changeRoute();
                 if (_sendFailedFnc) _sendFailedFnc();
                 _switchSM( stWAIT_FOR_IDLE );
             }
