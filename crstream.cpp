@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.8 - Tuan Tran
+ * v0.6.9 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -49,8 +49,9 @@ char    basic_crstream::i2h(uint8_t i) {
     }
 }
 
-basic_crstream::basic_crstream(Stream& serial)
-    : serial   ( serial   ) {
+basic_crstream::basic_crstream(Stream& serial, uint8_t powerPin)
+    : serial   ( serial   )
+    , _powerPin( powerPin ) {
     selfID                  =         0 ;
     destID                  = BROADCAST_ID ;
     panID                   =         0 ;
@@ -68,10 +69,12 @@ basic_crstream::basic_crstream(Stream& serial)
     _sendFailedFnc          = cresson_sendFailed ;
     _wiringErrorFnc         = cresson_wiringError;
     _clear();
+
+    if ( _powerPin != NO_POWERPIN ) pinMode(_powerPin, OUTPUT);
 }
 
 void basic_crstream::_clear() {
-    _chrnum                 = 0;
+    _chrnum                 = 0     ;
     _result.sender          = 0xFFFF;
     _result.destination     =     0 ;
     _result.msgid           =     0 ;
@@ -192,6 +195,14 @@ void basic_crstream::sleep() {
     writecmd(P_sleep, 1, 0x9999); // sleep 9999 seconds (BCD format)
     execute();
     _switchSM( stSLEEP );
+}
+
+void basic_crstream::powerOn() {
+    if ( _powerPin != NO_POWERPIN ) digitalWrite(_powerPin, HIGH);
+}
+
+void basic_crstream::powerOff() {
+    if ( _powerPin != NO_POWERPIN ) digitalWrite(_powerPin, LOW);
 }
 
 bool basic_crstream::_timeout(uint32_t timeoutms) {
@@ -383,8 +394,8 @@ void basic_crstream::_update() {
             }
             if (available() and _onReceivingFnc) _onReceivingFnc();
             if (_result.received) {
-            	if (_onReceivedFnc) _onReceivedFnc();
-            	_switchSM( stWAIT_FOR_IDLE );
+                if (_onReceivedFnc) _onReceivedFnc();
+                _switchSM( stWAIT_FOR_IDLE );
             }
             if (_timeout(3000)) _switchSM( stWAIT_FOR_IDLE );
             break;

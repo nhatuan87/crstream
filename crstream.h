@@ -1,14 +1,15 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.8 - Tuan Tran
+ * v0.6.9 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
 
 #include <Arduino.h>
 
-#define BAUDMODE_NUM      7
-#define BROADCAST_ID      0xFFFF
+#define BAUDMODE_NUM    7
+#define BROADCAST_ID    0xFFFF
+#define NO_POWERPIN     0xFF
 
 // Valid data rate
 typedef enum {
@@ -93,12 +94,12 @@ typedef struct {
         int16_t             sendAck;
         bool                received;
         bool                decodeFailed;
-        bool 				alive;
+        bool                alive;
 } status_t;
 
 class basic_crstream {
     public:
-        basic_crstream(Stream& serial);
+        basic_crstream(Stream& serial, uint8_t powerPin);
         uint16_t                selfID      ;
         uint16_t                destID      ;
         uint16_t                panID       ;
@@ -125,6 +126,8 @@ class basic_crstream {
         void                    wiringErrorCallback   (void (*fnc)(void));
         void                    sleep()         ;
         void                    wakeup()        ;
+        void                    powerOn()       ;
+        void                    powerOff()      ;
         bool                    listen(uint32_t timems=0);
         void                    writecmd(const char* const p_str, const uint16_t num, ...);
         void                    execute()       ;
@@ -146,6 +149,7 @@ class basic_crstream {
         uint16_t                _chrnum      ;
         static const char       _delim = ',' ;
         char                    _tempbuf[7]  ;
+        uint8_t                 _powerPin    ;
 
         void                    _update()    ;
         int                     _getchr()    ;
@@ -188,9 +192,13 @@ template<typename T> basic_crstream& basic_crstream::operator>> (T& payload){
 template<class Tserial=HardwareSerial>
 class crstream : public basic_crstream {
     public:
-        crstream(Tserial& serial) : basic_crstream(serial){};
+        crstream(Tserial& serial, uint8_t powerPin=NO_POWERPIN);
         bool    begin();
 };
+
+template<class Tserial>
+crstream<Tserial>::crstream(Tserial& serial, uint8_t powerPin) : basic_crstream(serial, powerPin) {
+}
 
 template<class Tserial>
 bool crstream<Tserial>::begin() {
@@ -222,7 +230,7 @@ bool crstream<Tserial>::begin() {
     listen(200);
     writecmd(P_mhrtclr, 0); execute(); // clear routing table
     if ( mhmode != MHMASTER ) {
-    	writecmd(P_mhrtreq, 0); execute(); // route request
+        writecmd(P_mhrtreq, 0); execute(); // route request
     }
     listen(200);
     return true;

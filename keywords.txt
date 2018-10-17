@@ -1,14 +1,9 @@
 #######################################
-
 # Syntax Coloring Map For crstream
 
 ####################################### 
-
 # Class (KEYWORD1)
-
 #######################################
-
-
 
 crstream	KEYWORD1
 cresson	KEYWORD1
@@ -16,11 +11,8 @@ cresson	KEYWORD1
 
 
 #######################################
-
 # Methods and Functions (KEYWORD2)
-
 #######################################	
-
 
 begin	KEYWORD2
 decodeFail	KEYWORD2
@@ -51,6 +43,8 @@ autosleep	KEYWORD2
 datamode	KEYWORD2
 uniqueID	KEYWORD2
 isAlive	KEYWORD2
+powerOn	KEYWORD2
+powerOff	KEYWORD2
 
 
 
@@ -58,7 +52,6 @@ isAlive	KEYWORD2
 # Constants (LITERAL1)
 #######################################
  
-
 DATA_200K	LITERAL1
 DATA_100K	LITERAL1
 DATA_50K	LITERAL1
@@ -77,3 +70,4 @@ MHSLAVE	LITERAL1
 BROADCAST_ID	LITERAL1
 TEXT_MODE	LITERAL1
 BIN_MODE	LITERAL1
+NO_POWERPIN	LITERAL1

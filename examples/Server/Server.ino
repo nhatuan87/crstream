@@ -2,17 +2,25 @@
 #include <uniqueID.h>
 #include "frame.h"
 
+res_frame serverFrame;
+
+/*
+ * Cresson RF module connects to uC using UART serial interface.
+ * It supports HardwareSerial / SoftwareSerial and power pin.
+ * Please modify instantiation below corresponding to actual hardware.
+ */
+
+//#define CRESSON_POWER_PIN   NO_POWERPIN
+
 #if defined(HAVE_HWSERIAL1)
-  crstream<>  cresson(Serial1);
+  crstream<>  cresson(Serial1 /*, CRESSON_POWER_PIN*/);
 #else
   #include <SoftwareSerial.h>
   #define CRESSON_TX_PIN  3
   #define CRESSON_RX_PIN  4
   SoftwareSerial            Serial1(CRESSON_TX_PIN, CRESSON_RX_PIN);
-  crstream<SoftwareSerial>  cresson(Serial1);
+  crstream<SoftwareSerial>  cresson(Serial1 /*, CRESSON_POWER_PIN*/);
 #endif
-
-res_frame serverFrame;
 
 void setup() {
   // serial debug
@@ -20,6 +28,10 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   // cresson setup
+  #ifdef CRESSON_POWER_PIN
+  cresson.powerOn();
+  #endif
+
   cresson.panID     = 0x8888;      // default: 0x0000
   cresson.begin();
   while (!cresson.isAlive()) {
