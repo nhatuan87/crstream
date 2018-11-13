@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.9 - Tuan Tran
+ * v0.6.10 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -26,6 +26,7 @@ const PROGMEM char P_mhdata[]   = "MHDATA"  ;
 const PROGMEM char P_mhsend[]   = "MHSEND"  ;
 const PROGMEM char P_mhack[]    = "MHACK:"  ;
 const PROGMEM uint32_t   _baud[BAUDMODE_NUM] = {9600, 19200, 38400, 57600, 115200, 230400, 460800};
+char basic_crstream::_tempbuf[7];
 
 int        basic_crstream::asc2hex(char c) {
     if (isdigit(c))         c -= '0';
@@ -40,13 +41,9 @@ uint8_t    basic_crstream::bin2bcd (uint8_t val) {
     return val + 6 * (val / 10);
 }
 
-char    basic_crstream::i2h(uint8_t i) {
-    uint8_t k = i & 0x0F;
-    if (k <= 9) {
-        return '0' + k;
-    } else {
-        return 'A' + k - 10;
-    }
+char* basic_crstream::hex2asc(uint8_t h) {
+  snprintf(_tempbuf, 3, "%02X", h);
+  return _tempbuf;
 }
 
 basic_crstream::basic_crstream(Stream& serial, uint8_t powerPin)
@@ -215,7 +212,7 @@ void basic_crstream::_switchSM(uint8_t newState) {
     _timems = millis();
 }
 
-// readout a character from serial buffer
+// read a byte (2 ascii) from serial buffer
 int basic_crstream::_getchr () {
     int c1 = asc2hex((char)serial.read());
     int c0 = asc2hex((char)serial.read());
@@ -240,8 +237,7 @@ int basic_crstream::_getint () {
 // write hexascii
 void basic_crstream::_write(const char* bytes, const uint8_t length) {
     for(uint8_t i = length; i != 0; i--) {
-        serial.print( i2h(bytes[i-1] >> 4) );
-        serial.print( i2h(bytes[i-1]     ) );
+        serial.print( hex2asc(bytes[i-1])  );
     }
 }
 

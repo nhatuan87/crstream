@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.9 - Tuan Tran
+ * v0.6.10 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -135,7 +135,7 @@ class basic_crstream {
         // static functions
         static int              asc2hex (char c     );
         static uint8_t          bin2bcd (uint8_t val);
-        static char             i2h(uint8_t i);
+        static char*            hex2asc (uint8_t h  );
 
     private:
         void                    (*_onReceivedFnc)(void);
@@ -148,7 +148,7 @@ class basic_crstream {
         status_t                _result      ;
         uint16_t                _chrnum      ;
         static const char       _delim = ',' ;
-        char                    _tempbuf[7]  ;
+        static char             _tempbuf[7]  ;
         uint8_t                 _powerPin    ;
 
         void                    _update()    ;
