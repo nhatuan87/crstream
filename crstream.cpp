@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.10 - Tuan Tran
+ * v0.6.11 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -8,10 +8,14 @@ void cresson_onReceived()  __attribute__((weak));
 void cresson_onReceiving() __attribute__((weak));
 void cresson_sendFailed()  __attribute__((weak));
 void cresson_wiringError() __attribute__((weak));
+void cresson_powerOn()     __attribute__((weak));
+void cresson_powerOff()    __attribute__((weak));
 void cresson_onReceived()      {};
 void cresson_onReceiving()     {};
 void cresson_sendFailed()      {};
 void cresson_wiringError()     {};
+void cresson_powerOn()         {};
+void cresson_powerOff()        {};
 
 const PROGMEM char P_listen[]   = "listen"  ;
 const PROGMEM char P_baud[]     = "baud="   ;
@@ -47,26 +51,28 @@ char* basic_crstream::hex2asc(uint8_t h) {
 }
 
 basic_crstream::basic_crstream(Stream& serial, uint8_t powerPin)
-    : serial   ( serial   )
-    , _powerPin( powerPin ) {
-    selfID                  =         0 ;
-    destID                  = BROADCAST_ID ;
-    panID                   =         0 ;
-    baudmode                = BAUD_9600 ;
-    datarate                = DATA_50K  ;
-    channel                 =        33 ;
-    mhmode                  = MHSLAVE   ;
-    autosleep               = false     ;
-    datamode                = BIN_MODE  ;
-    _chrnum                 = 0         ;
-    _currentState           = stIDLE    ;
-    _txState                = stTX_IDLE ;
-    _onReceivingFnc         = cresson_onReceiving;
-    _onReceivedFnc          = cresson_onReceived ;
-    _sendFailedFnc          = cresson_sendFailed ;
-    _wiringErrorFnc         = cresson_wiringError;
+    : serial            ( serial                )
+    , selfID            ( 0                     )
+    , destID            ( BROADCAST_ID          )
+    , panID             ( 0                     )
+    , baudmode          ( BAUD_9600             )
+    , datarate          ( DATA_50K              )
+    , channel           ( 33                    )
+    , mhmode            ( MHSLAVE               )
+    , autosleep         ( false                 )
+    , datamode          ( BIN_MODE              )
+    , _currentState     ( stIDLE                )
+    , _txState          ( stTX_IDLE             )
+    , _chrnum           ( 0                     )
+    , _powerPin         ( powerPin              )
+    , _onReceivedFnc    ( cresson_onReceived    )
+    , _onReceivingFnc   ( cresson_onReceiving   )
+    , _sendFailedFnc    ( cresson_sendFailed    )
+    , _wiringErrorFnc   ( cresson_wiringError   )
+    , _powerOnFnc       ( cresson_powerOn       )
+    , _powerOffFnc      ( cresson_powerOff      ) {
+    
     _clear();
-
     if ( _powerPin != NO_POWERPIN ) pinMode(_powerPin, OUTPUT);
 }
 
@@ -122,7 +128,15 @@ void  basic_crstream::sendFailedCallback    (void (*fnc)(void)) {
 }
 
 void  basic_crstream::wiringErrorCallback   (void (*fnc)(void)) {
-    _wiringErrorFnc = fnc; 
+    _wiringErrorFnc = fnc;
+}
+
+void  basic_crstream::powerOnCallback   (void (*fnc)(void)) {
+    _powerOnFnc = fnc;
+}
+
+void  basic_crstream::powerOffCallback   (void (*fnc)(void)) {
+    _powerOffFnc = fnc;
 }
 
 bool  basic_crstream::isAlive  () {
@@ -139,9 +153,8 @@ bool  basic_crstream::isAlive  () {
 
 // Listen for a message until timeout.
 bool basic_crstream::listen(uint32_t timems) {
-    if  (_currentState == stSLEEP and timems > 0) wakeup();
-
-    if ( _txState == stTX_WRITE_DATA ) {
+    if ( _currentState == stSLEEP and timems > 0 ) wakeup();
+    else if ( _txState == stTX_WRITE_DATA ) {
         if (_currentState != stIDLE) _listen();
         serial.println();
         serial.flush();
@@ -149,6 +162,7 @@ bool basic_crstream::listen(uint32_t timems) {
         _txState = stTX_IDLE;
         _result.alive = false;
     }
+
     bool received = _listen(timems);
     if (autosleep) sleep();
     return received;
@@ -196,10 +210,12 @@ void basic_crstream::sleep() {
 
 void basic_crstream::powerOn() {
     if ( _powerPin != NO_POWERPIN ) digitalWrite(_powerPin, HIGH);
+    else if (_powerOnFnc) cresson_powerOn();
 }
 
 void basic_crstream::powerOff() {
     if ( _powerPin != NO_POWERPIN ) digitalWrite(_powerPin, LOW);
+    else if (_powerOffFnc) cresson_powerOff();
 }
 
 bool basic_crstream::_timeout(uint32_t timeoutms) {
@@ -293,6 +309,7 @@ bool basic_crstream::_listen(uint32_t timems) {
         _update();
         if (_currentState == stIDLE and _result.received             ) break;
         if (_currentState == stIDLE and millis() - localtime > timems) break;
+        if (_currentState == stSLEEP                                 ) break;
     } while ( true );
     bool received = _result.received;
     _result.received = false;

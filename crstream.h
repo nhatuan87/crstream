@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.10 - Tuan Tran
+ * v0.6.11 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -100,6 +100,7 @@ typedef struct {
 class basic_crstream {
     public:
         basic_crstream(Stream& serial, uint8_t powerPin);
+        Stream&                 serial      ;
         uint16_t                selfID      ;
         uint16_t                destID      ;
         uint16_t                panID       ;
@@ -109,7 +110,6 @@ class basic_crstream {
         uint8_t                 mhmode      ;
         bool                    autosleep   ;
         bool                    datamode    ;
-        Stream&                 serial      ;
 
         template<typename T> basic_crstream& operator<< (T payload);
         template<typename T> basic_crstream& operator>> (T& payload);
@@ -124,6 +124,8 @@ class basic_crstream {
         void                    onReceivingCallback   (void (*fnc)(void));
         void                    sendFailedCallback    (void (*fnc)(void));
         void                    wiringErrorCallback   (void (*fnc)(void));
+        void                    powerOnCallback       (void (*fnc)(void));
+        void                    powerOffCallback      (void (*fnc)(void));
         void                    sleep()         ;
         void                    wakeup()        ;
         void                    powerOn()       ;
@@ -138,10 +140,6 @@ class basic_crstream {
         static char*            hex2asc (uint8_t h  );
 
     private:
-        void                    (*_onReceivedFnc)(void);
-        void                    (*_onReceivingFnc)(void);
-        void                    (*_sendFailedFnc)(void);
-        void                    (*_wiringErrorFnc)(void);
         uint8_t                 _currentState;
         uint8_t                 _txState     ;
         uint32_t                _timems      ;
@@ -150,6 +148,12 @@ class basic_crstream {
         static const char       _delim = ',' ;
         static char             _tempbuf[7]  ;
         uint8_t                 _powerPin    ;
+        void                    (*_onReceivedFnc)(void);
+        void                    (*_onReceivingFnc)(void);
+        void                    (*_sendFailedFnc)(void);
+        void                    (*_wiringErrorFnc)(void);
+        void                    (*_powerOnFnc)(void);
+        void                    (*_powerOffFnc)(void);
 
         void                    _update()    ;
         int                     _getchr()    ;
