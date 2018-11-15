@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.6.11 - Tuan Tran
+ * v0.7.0 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -116,7 +116,7 @@ uint16_t basic_crstream::available() {
 }
 
 void  basic_crstream::onReceivedCallback    (void (*fnc)(void)) {
-    _onReceivedFnc = fnc;   
+    _onReceivedFnc = fnc;
 }
 
 void  basic_crstream::onReceivingCallback   (void (*fnc)(void)) {
@@ -181,7 +181,7 @@ void basic_crstream::writecmd(const char* const p_str, const uint16_t num, ...) 
     va_start(args, num);
     for(uint8_t i = 0; i < num; i++){
         if (i!=0) serial.print(_delim);
-        uint16_t arg = va_arg(args, uint16_t);
+        uint16_t arg = va_arg(args, unsigned int);
         _write((char*) &arg, sizeof(uint16_t));
     }
     va_end(args);
