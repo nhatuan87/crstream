@@ -6,7 +6,9 @@
 #define UNIQUEID_H
 
 #include <Arduino.h>
+#if defined(ARDUINO_ARCH_AVR)
 #include <avr/boot.h>
+#endif
 
 const PROGMEM char P_date[]   = __DATE__  ;
 const PROGMEM char P_time[]   = __TIME__  ;

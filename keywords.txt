@@ -45,6 +45,10 @@ uniqueID	KEYWORD2
 isAlive	KEYWORD2
 powerOn	KEYWORD2
 powerOff	KEYWORD2
+cresson_powerOn	KEYWORD2
+cresson_powerOff	KEYWORD2
+powerOnCallback	KEYWORD2
+powerOffCallback	KEYWORD2
 
 
 

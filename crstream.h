@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.7.0 - Tuan Tran
+ * v0.7.1 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -208,6 +208,8 @@ crstream<Tserial>::crstream(Tserial& serial, uint8_t powerPin) : basic_crstream(
 // This would avoid conflict with USB-Serial connection at GPIO3/GPIO1 as default
 template<class Tserial>
 bool crstream<Tserial>::begin() {
+    this->powerOn();
+
     if (baudmode == 0 or baudmode > BAUDMODE_NUM) baudmode = BAUD_9600; // baudmode = 1~BAUDMODE_NUM
     if (datarate >  3                           ) datarate = DATA_50K ;
 
@@ -216,19 +218,12 @@ bool crstream<Tserial>::begin() {
         if (i == baudmode) continue;
 
         port->begin( pgm_read_dword_near(_baud + i - 1) );
-#if defined(ARDUINO_ARCH_ESP8266)
-        //toggle between use of GPIO13/GPIO15 or GPIO3/GPIO(1/2) as RX and TX
-        port->swap();
-#endif
         execute();   // dummy command
         writecmd(P_baud, 1, baudmode);
         execute();
     }
 
     port->begin( pgm_read_dword_near(_baud + baudmode - 1) );
-#if defined(ARDUINO_ARCH_ESP8266)
-    port->swap();
-#endif
     execute();   // dummy command
 
     writecmd(P_sysreg, 2, 0x01, selfID            ); execute();

@@ -1,7 +1,9 @@
 #include <crstream.h>
 #include <uniqueID.h>
+#if defined(ARDUINO_ARCH_AVR)
 #include <avr/sleep.h>
 #include <avr/wdt.h>
+#endif
 
 /*
  * Cresson RF module connects to uC using UART serial interface.
@@ -11,14 +13,14 @@
 
 //#define CRESSON_POWER_PIN   NO_POWERPIN
 
-#if defined(HAVE_HWSERIAL1)
+#if defined(ARDUINO_ARCH_AVR) && defined(HAVE_HWSERIAL1)
   crstream<>  cresson(Serial1 /*, CRESSON_POWER_PIN*/);
 #else
   #include <SoftwareSerial.h>
   #define CRESSON_TX_PIN  3
   #define CRESSON_RX_PIN  4
-  SoftwareSerial            Serial1(CRESSON_TX_PIN, CRESSON_RX_PIN);
-  crstream<SoftwareSerial>  cresson(Serial1 /*, CRESSON_POWER_PIN*/);
+  SoftwareSerial            Serialx(CRESSON_TX_PIN, CRESSON_RX_PIN);
+  crstream<SoftwareSerial>  cresson(Serialx /*, CRESSON_POWER_PIN*/);
 #endif
 
 void setup() {
@@ -49,6 +51,7 @@ void loop() {
 }
 
 void cpuPowerDown() {
+#if defined(ARDUINO_ARCH_AVR)
   // disable ADC for power saving
   ADCSRA &= ~(1 << ADEN);
   // if sleeping forever, disable WDT
@@ -74,4 +77,5 @@ void cpuPowerDown() {
   sei();
   // enable ADC
   ADCSRA |= (1 << ADEN);
+#endif
 }

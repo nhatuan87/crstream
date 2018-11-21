@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.7.0 - Tuan Tran
+ * v0.7.1 - Tuan Tran
 */
 #include "crstream.h"
 
@@ -55,7 +55,11 @@ basic_crstream::basic_crstream(Stream& serial, uint8_t powerPin)
     , selfID            ( 0                     )
     , destID            ( BROADCAST_ID          )
     , panID             ( 0                     )
+#if defined(ARDUINO_ARCH_ESP8266) // ESP8266 SoftwareSerial is bad at 9600bps
+    , baudmode          ( BAUD_19200            )
+#else
     , baudmode          ( BAUD_9600             )
+#endif
     , datarate          ( DATA_50K              )
     , channel           ( 33                    )
     , mhmode            ( MHSLAVE               )
@@ -210,12 +214,12 @@ void basic_crstream::sleep() {
 
 void basic_crstream::powerOn() {
     if ( _powerPin != NO_POWERPIN ) digitalWrite(_powerPin, HIGH);
-    else if (_powerOnFnc) cresson_powerOn();
+    else if (_powerOnFnc) _powerOnFnc();
 }
 
 void basic_crstream::powerOff() {
     if ( _powerPin != NO_POWERPIN ) digitalWrite(_powerPin, LOW);
-    else if (_powerOffFnc) cresson_powerOff();
+    else if (_powerOffFnc) _powerOffFnc();
 }
 
 bool basic_crstream::_timeout(uint32_t timeoutms) {
