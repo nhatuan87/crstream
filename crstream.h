@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2018 CME Vietnam Co. Ltd.
- * v0.7.1 - Tuan Tran
+ * v0.7.2 - Tuan Tran
 */
 #ifndef CRSTREAM_H
 #define CRSTREAM_H
@@ -13,9 +13,9 @@
 
 // Valid data rate
 typedef enum {
-    DATA_200K     = 0,
+    DATA_200K     = 2,
     DATA_100K     = 1,
-    DATA_50K      = 2,
+    DATA_50K      = 0,
     DATA_10K      = 3
 } DATARATE;
 

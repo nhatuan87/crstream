@@ -13,11 +13,14 @@
   crstream<>  cresson(Serial1 /*, CRESSON_POWER_PIN*/);
 #else
   #include <SoftwareSerial.h>
-  #define CRESSON_TX_PIN  3
-  #define CRESSON_RX_PIN  4
+  #define CRESSON_TX_PIN  7
+  #define CRESSON_RX_PIN  8
   SoftwareSerial            Serialx(CRESSON_TX_PIN, CRESSON_RX_PIN);
   crstream<SoftwareSerial>  cresson(Serialx /*, CRESSON_POWER_PIN*/);
 #endif
+
+bool cresson_isAlive;
+uint32_t localtime;
 
 void setup() {
   // serial debug
@@ -28,16 +31,19 @@ void setup() {
   cresson.panID     = 0x0123;
   cresson.begin();
 
-  pinMode(LED_BUILTIN, OUTPUT);
-  while (!cresson.isAlive()) {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(100);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
+  while(!cresson.isAlive()) {
+    delay(1000);
   }
+
+  pinMode(LED_BUILTIN, OUTPUT);
+  localtime = millis();
 }
 
 void loop() {
+  if (millis() - localtime >= 1000) {
+    localtime = millis();
+    digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+  }
   cresson.listen();
 }
 
