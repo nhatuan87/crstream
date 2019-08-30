@@ -36,7 +36,7 @@ uint16_t crc16_calc(uint16_t& crc, const char* const p_str) {
 }
 
 uint16_t uniqueID() {
-#if defined(__AVR_ATmega328PB__)
+#if defined(__AVR_ATmega328PB__) || defined(__AVR_ATmega324PB__)
     return boot_signature_byte_get(0x16) << 8 |  boot_signature_byte_get(0x17);
 #else
     uint16_t crc = 0xFFFF;

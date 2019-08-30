@@ -216,14 +216,20 @@ bool crstream<Tserial>::begin() {
     Tserial* port = (Tserial*) &serial;
     for (uint8_t i = 1; i <= BAUDMODE_NUM; i++) {
         if (i == baudmode) continue;
-
+#ifdef ARDUINO_ARCH_ESP32
+        port->updateBaudRate( pgm_read_dword_near(_baud + i - 1) );
+#else
         port->begin( pgm_read_dword_near(_baud + i - 1) );
+#endif
         execute();   // dummy command
         writecmd(P_baud, 1, baudmode);
         execute();
     }
-
+#ifdef ARDUINO_ARCH_ESP32
+    port->updateBaudRate( pgm_read_dword_near(_baud + baudmode - 1) );
+#else
     port->begin( pgm_read_dword_near(_baud + baudmode - 1) );
+#endif
     execute();   // dummy command
 
     writecmd(P_sysreg, 2, 0x01, selfID            ); execute();
